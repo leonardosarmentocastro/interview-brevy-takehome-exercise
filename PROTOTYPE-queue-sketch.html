@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE — Payment Issue Queue (throwaway sketch)</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c2230; --line:#262d3a;
+    --tx:#e6edf3; --tx2:#9aa7b8; --tx3:#6b788a;
+    --ok:#3fb950; --warn:#d29922; --bad:#f85149; --info:#58a6ff; --purple:#bc8cff;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;padding-bottom:78px}
+  h1,h2,h3,h4{margin:0;font-weight:600}
+  a{color:var(--info)}
+  .wrap{max-width:1400px;margin:0 auto;padding:20px}
+  .topbar{border-bottom:1px solid var(--line);padding:14px 20px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;background:var(--panel)}
+  .topbar h1{font-size:15px}
+  .topbar .sub{color:var(--tx3);font-size:12px}
+  .proto{background:var(--warn);color:#000;font:700 10px var(--mono);padding:2px 6px;border-radius:3px;letter-spacing:.5px}
+
+  /* lane / status pills */
+  .pill{display:inline-block;font:600 10px/1.6 var(--mono);padding:1px 7px;border-radius:99px;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+  .l-executed{background:rgba(63,185,80,.15);color:var(--ok);border:1px solid rgba(63,185,80,.35)}
+  .l-awaiting{background:rgba(88,166,255,.13);color:var(--info);border:1px solid rgba(88,166,255,.3)}
+  .l-review{background:rgba(210,153,34,.14);color:var(--warn);border:1px solid rgba(210,153,34,.33)}
+  .l-escalated{background:rgba(248,81,73,.13);color:var(--bad);border:1px solid rgba(248,81,73,.32)}
+  .l-blocked{background:rgba(188,140,255,.13);color:var(--purple);border:1px solid rgba(188,140,255,.32)}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px}
+  .muted{color:var(--tx2)} .dim{color:var(--tx3)}
+  .mono{font-family:var(--mono)}
+  .amt{font-family:var(--mono);font-weight:600}
+
+  /* ---------- V1 split queue ---------- */
+  .split{display:grid;grid-template-columns:400px 1fr;gap:16px;align-items:start}
+  .qrow{display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);padding:12px 14px;cursor:pointer;color:inherit;font:inherit}
+  .qrow:hover{background:var(--panel2)}
+  .qrow[aria-current="true"]{background:var(--panel2);box-shadow:inset 3px 0 0 var(--info)}
+  .qrow .r1{display:flex;justify-content:space-between;gap:8px;align-items:center}
+  .qrow .r2{color:var(--tx2);font-size:12.5px;margin-top:3px}
+  .qrow .r3{margin-top:6px;display:flex;gap:6px;align-items:center}
+  .detail{padding:18px}
+  .kv{display:grid;grid-template-columns:132px 1fr;gap:5px 12px;font-size:13px}
+  .kv dt{color:var(--tx3)} .kv dd{margin:0;font-family:var(--mono)}
+  .sect{margin-top:18px}
+  .sect>h4{font-size:11px;letter-spacing:.7px;text-transform:uppercase;color:var(--tx3);margin-bottom:8px}
+  .tracemeta{font:11px var(--mono);color:var(--tx3);background:var(--panel2);border:1px solid var(--line);
+    border-radius:6px;padding:6px 10px;margin-bottom:10px}
+  .tracemeta b{color:var(--tx2)}
+  .trace{display:flex;flex-direction:column;gap:9px}
+  .trace .clause{font:12px/1.5 var(--mono);color:var(--tx2);display:flex;gap:9px;
+    padding-left:10px;border-left:2px solid var(--line)}
+  .trace .clause b{color:var(--tx)}
+  .trace .tmark{font-weight:700;width:13px;flex:none;text-align:center}
+  .trace .tstat{font-size:10px;letter-spacing:.4px;text-transform:uppercase;opacity:.75}
+  .trace .tf{border-left-color:var(--ok)}      .tf .tmark,.tf .tstat{color:var(--ok)}
+  .trace .tn{border-left-color:var(--tx3)}     .tn .tmark,.tn .tstat{color:var(--tx3)}
+  .trace .ta{border-left-color:var(--info)}    .ta .tmark,.ta .tstat{color:var(--info)}
+  .trace .tp{border-left-color:var(--warn)}    .tp .tmark,.tp .tstat{color:var(--warn)}
+  .trace .tc{border-left-color:var(--purple)}  .tc .tmark,.tc .tstat{color:var(--purple)}
+  .trace .tm{border-left-color:var(--purple)}  .tm .tmark,.tm .tstat{color:var(--purple)}
+  .gate{display:flex;gap:9px;align-items:flex-start;font-size:13px;padding:5px 0}
+  .gate .mark{font-family:var(--mono);font-weight:700;width:14px;flex:none}
+  .pass .mark{color:var(--ok)} .fail .mark{color:var(--bad)} .na .mark{color:var(--tx3)}
+  .gate .note{color:var(--tx3);font-size:12px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--tx);padding:7px 13px;border-radius:6px;cursor:pointer;font:13px inherit}
+  .btn:hover{border-color:var(--tx3)}
+  .btn.primary{background:#1f6feb;border-color:#1f6feb;color:#fff}
+  .btn.danger{border-color:rgba(248,81,73,.4);color:var(--bad)}
+  .clock{font:12px var(--mono);color:var(--warn)}
+  .flag{border:1px solid rgba(188,140,255,.35);background:rgba(188,140,255,.07);border-radius:6px;padding:10px 12px;font-size:12.5px;color:var(--tx2)}
+  .flag b{color:var(--purple);font-family:var(--mono);font-size:11px;letter-spacing:.4px}
+
+  /* ---------- V1 filters ---------- */
+  .filters{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+  .filters input,.filters select{background:var(--bg);border:1px solid var(--line);color:var(--tx);
+    border-radius:6px;padding:6px 9px;font:12.5px inherit;width:100%}
+  .filters input:focus,.filters select:focus{outline:0;border-color:var(--info)}
+  .frow{display:flex;gap:6px}
+  .frow>label{flex:1;display:flex;flex-direction:column;gap:3px}
+  .frow>label>span{font:10px var(--mono);color:var(--tx3);letter-spacing:.5px;text-transform:uppercase}
+  .chips{display:flex;gap:4px;flex-wrap:wrap}
+  .chip{background:transparent;border:1px solid var(--line);color:var(--tx2);border-radius:99px;
+    padding:3px 9px;font:11px var(--mono);cursor:pointer}
+  .chip:hover{border-color:var(--tx3);color:var(--tx)}
+  .chip[aria-pressed="true"]{background:var(--panel2);border-color:var(--info);color:var(--tx)}
+  .empty{padding:26px 14px;text-align:center;color:var(--tx3);font-size:13px}
+
+  /* ---------- two-gate header ---------- */
+  .gatehdr{display:flex;align-items:stretch;gap:9px;margin-top:16px;flex-wrap:wrap}
+  .vbox{flex:1;min-width:180px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--panel2)}
+  .vkind{font:9.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--tx3);margin-bottom:6px}
+  .vstate{font:700 15px var(--mono);letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+  .vnote{font-size:12.5px;color:var(--tx2)}
+  .vsrc{font:10.5px var(--mono);color:var(--tx3);margin-top:5px}
+  .vop{align-self:center;font:700 11px var(--mono);color:var(--tx3);letter-spacing:.5px}
+  .v-ok{border-color:rgba(63,185,80,.4)}   .v-ok  .vstate{color:var(--ok)}
+  .v-no{border-color:rgba(248,81,73,.4)}   .v-no  .vstate{color:var(--bad)}
+  .v-gap{border-color:rgba(188,140,255,.45)} .v-gap .vstate{color:var(--purple)}
+  .v-dim{border-color:var(--line)}         .v-dim .vstate{color:var(--tx3)}
+  .vout{background:var(--bg);border-style:dashed}  .vout .vstate{color:var(--tx)}
+
+  /* ---------- policy panel ---------- */
+  .linkbtn{background:none;border:0;color:var(--info);cursor:pointer;font:11px var(--mono);
+    text-transform:none;letter-spacing:0;padding:0 8px;text-decoration:underline}
+  .polbox{border:1px solid var(--line);border-radius:7px;background:#0b0e13;overflow:hidden}
+  .polhead{font:12px var(--mono);color:var(--tx2);padding:9px 12px;border-bottom:1px solid var(--line);background:var(--panel2)}
+  .polsub{border-bottom:1px solid var(--line)}
+  .polsub:last-child{border-bottom:0}
+  .polsub.active{background:rgba(88,166,255,.04)}
+  .polsubhead,.polsub>summary{font:12px var(--mono);color:var(--tx);padding:9px 12px;display:flex;
+    gap:8px;align-items:center;flex-wrap:wrap}
+  .polsub>summary{cursor:pointer;color:var(--tx2)}
+  .polsub>summary:hover{color:var(--tx)}
+  ul.pol{list-style:none;margin:0;padding:0 12px 11px}
+  ul.pol li{display:flex;gap:10px;padding:3px 0;font-size:12.5px;color:var(--tx2);line-height:1.5}
+  ul.pol li .ln{font:11px var(--mono);color:var(--tx3);min-width:24px;text-align:right;flex:none;padding-top:2px}
+  ul.pol li b{color:var(--tx2);font-weight:600}
+  ul.pol li.lit{background:rgba(210,153,34,.09);border-left:2px solid var(--warn);
+    margin-left:-12px;padding-left:10px;border-radius:0 4px 4px 0}
+  ul.pol li.lit,ul.pol li.lit b{color:var(--tx)}
+
+  /* ---------- V2 focus ---------- */
+  .focus{max-width:860px;margin:0 auto}
+  .focus .hero{padding:26px}
+  .focus .q{font-size:22px;font-weight:600;margin:10px 0 4px}
+  .stepper{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;color:var(--tx3);font:12px var(--mono)}
+  .verdictbig{display:flex;gap:14px;align-items:center;padding:14px 16px;border-radius:8px;margin:16px 0;border:1px solid var(--line);background:var(--panel2)}
+  .verdictbig .big{font:700 13px var(--mono);letter-spacing:.5px}
+
+  /* ---------- V3 lanes ---------- */
+  .lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}
+  .lane{padding:12px}
+  .lane>header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+  .lane>header h3{font-size:13px}
+  .lane .cap{font-size:11.5px;color:var(--tx3);margin-bottom:10px;line-height:1.45}
+  .lcard{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:11px 12px;margin-bottom:9px}
+  .lcard h4{font-size:13px;margin-bottom:3px}
+  .lcard .meta{font:11.5px var(--mono);color:var(--tx3)}
+  .lcard .why{font-size:12px;color:var(--tx2);margin-top:7px;border-top:1px dashed var(--line);padding-top:7px}
+  .lcard .route{font:11px var(--mono);color:var(--tx2);margin-top:7px;line-height:1.7}
+  .lcard .route .warnx{color:var(--bad)}
+  .lcard .promo{display:block;margin-top:3px;font-size:10.5px}
+  .lcard .promo.ok{color:var(--ok)} .lcard .promo.bad{color:var(--warn)}
+
+  /* ---------- V4 clock ---------- */
+  .stream{position:relative;padding-left:130px}
+  .ev{position:relative;padding:0 0 20px 22px;border-left:2px solid var(--line)}
+  .ev:last-child{border-left-color:transparent}
+  .ev .dot{position:absolute;left:-7px;top:3px;width:12px;height:12px;border-radius:99px;background:var(--panel);border:2px solid var(--tx3)}
+  .ev.now .dot{border-color:var(--info);background:var(--info)}
+  .ev.due .dot{border-color:var(--warn)}
+  .ev .when{position:absolute;left:-130px;top:0;width:112px;text-align:right;font:11.5px var(--mono);color:var(--tx3)}
+  .ev .body{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:11px 13px}
+  .nowline{border-top:1px dashed var(--info);margin:6px 0 20px -22px;position:relative}
+  .nowline span{position:absolute;top:-9px;left:0;background:var(--bg);color:var(--info);font:11px var(--mono);padding-right:8px}
+  .dayhdr{font:600 12px var(--mono);color:var(--tx2);letter-spacing:.6px;margin:0 0 9px 130px;
+    padding-bottom:5px;border-bottom:1px solid var(--line)}
+  .kind{font:9.5px var(--mono);letter-spacing:.4px;text-transform:uppercase;padding:2px 7px;border-radius:99px;border:1px solid}
+  .kind.k-ok{color:var(--ok);border-color:rgba(63,185,80,.4)}
+  .kind.k-warn{color:var(--warn);border-color:rgba(210,153,34,.4)}
+  .kind.k-bad{color:var(--bad);border-color:rgba(248,81,73,.4)}
+  .ev .body.k-warn{border-left:3px solid var(--warn)}
+  .ev .body.k-bad{border-left:3px solid var(--bad)}
+  .ev .body.k-ok{border-left:3px solid var(--ok)}
+  @media(max-width:1000px){.dayhdr{margin-left:0}}
+
+  /* ---------- switcher ---------- */
+  .switch{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;display:flex;gap:6px;background:rgba(22,27,34,.94);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:10px;padding:7px;z-index:99;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:calc(100vw - 24px);overflow-x:auto}
+  .switch button{background:transparent;border:0;color:var(--tx2);padding:7px 12px;border-radius:7px;cursor:pointer;font:12.5px inherit;white-space:nowrap}
+  .switch button:hover{background:var(--panel2);color:var(--tx)}
+  .switch button[aria-pressed="true"]{background:#1f6feb;color:#fff}
+  .switch .lbl{font:10px var(--mono);color:var(--tx3);align-self:center;padding:0 8px 0 4px;letter-spacing:.5px}
+  @media(max-width:1000px){.split,.lanes{grid-template-columns:1fr}.stream{padding-left:0}.ev .when{position:static;width:auto;text-align:left;margin-bottom:4px}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="proto">PROTOTYPE</span>
+  <h1>Payment Issue Queue</h1>
+  <span class="sub" id="viewnote"></span>
+</div>
+
+<div class="wrap" id="app"></div>
+
+<div class="switch" id="switch"><span class="lbl">VIEW</span></div>
+
+<script>
+/* ============================================================
+   THROWAWAY SKETCH. Data below is a hand-derived projection of
+   customers.json / transactions.json / payment_issues.json,
+   with verdicts traced to clauses in policies.md by line number.
+   "Now" is pinned to 2025-01-13T12:00Z so the clocks make sense.
+   ============================================================ */
+
+const LANES = {
+  executed : {cls:'l-executed',  label:'Auto-resolved'},
+  awaiting : {cls:'l-awaiting',  label:'Awaiting customer'},
+  review   : {cls:'l-review',    label:'Needs review'},
+  escalated: {cls:'l-escalated', label:'Escalated'},
+  blocked  : {cls:'l-blocked',   label:'Policy gap'}
+};
+
+const ISSUES = [
+  {
+    id:'iss_004', lane:'executed', type:'Refund request · changed mind',
+    title:'Refund $37.25 — cancel 3 remaining installments',
+    customer:'Alex Chen', cust_id:'cust_042', email:'alex.chen@email.com', merchant:'HomeEssentials',
+    txn:'txn_5998', amount:149.00, act_amount:37.25, opened:'2025-01-13T10:45Z',
+    clock:'Executed 10:45:07Z — 7s after intake',
+    facts:[
+      ['Customer','Alex Chen · cust_042 · risk low'],
+      ['Lifetime','$1,847.50 · 12 txns · 11 ok / 3 failed'],
+      ['Transaction','txn_5998 · $149.00 · active_installment'],
+      ['Plan','4 × $37.25 · 1 paid · next due 2025-02-10'],
+      ['Shipping','not_shipped · est ship 2025-01-15'],
+      ['Age','3 days since purchase']
+    ],
+    trace:[
+      ['policies.md:76','<b>Eligible window: 14 days from purchase.</b> Day 3 → inside window.','fired'],
+      ['policies.md:77','<b>Auto-resolve when within 14 days AND item hasn\'t shipped.</b> shipping.status = not_shipped → satisfied.','fired'],
+      ['policies.md:79','<b>Installment plans: refund only paid installments; cancel remaining.</b> → refund $37.25, cancel 3 × $37.25.','applied'],
+      ['policies.md:88','<b>High-value: lifetime spend &gt; $2000.</b> $1,847.50 → does not fire.','not_met']
+    ],
+    gates:[
+      ['pass','Bounded amount','$37.25 — under the $250 auto-execute ceiling'],
+      ['pass','Reversible','Refund can be clawed back before ship date'],
+      ['pass','Unambiguous inputs','not_shipped is a hard fact, not an inference'],
+      ['pass','Customer risk','low']
+    ],
+    actions:[['View audit trail',''],['Reverse execution','danger']]
+  },
+  {
+    id:'iss_005', lane:'awaiting', type:'Decline · card expired',
+    title:'Card expired on a 14-month subscription',
+    customer:'Taylor Kim', cust_id:'cust_315', email:'taylor.kim@email.com', merchant:'SubscriptionBox.co',
+    txn:'txn_6201', amount:34.99, opened:'2025-01-13T02:00Z',
+    clock:'Response window ends 2025-01-15 02:00Z (38h left) · next box ships Jan 20',
+    facts:[
+      ['Customer','Taylor Kim · cust_315 · risk low'],
+      ['Lifetime','$4,205.00 · 38 txns · 36 ok / 2 failed'],
+      ['Tenure','Account since 2022-11-10 · subscribed 14 months'],
+      ['Transaction','txn_6201 · $34.99 · failed (card_expired)'],
+      ['Method','card_amex_3782'],
+      ['Downstream','Next box ships 2025-01-20 — 7 days']
+    ],
+    trace:[
+      ['policies.md:23','<b>Auto-retry: No — retrying won\'t help.</b> No retry scheduled.','applied'],
+      ['policies.md:24','<b>Notify immediately, request updated payment method.</b> Sent 02:01Z.','applied'],
+      ['policies.md:25','<b>Escalate when no response after 48h AND recurring.</b> Recurring = true; 48h clock expires Jan 15 02:00Z.','pending'],
+      ['policies.md:88','<b>High-value: lifetime spend &gt; $2000.</b> $4,205.00 → fires, but the clause says “consider”, which is not executable.','conflict']
+    ],
+    gates:[
+      ['na','Authority not reached','No action is executable until the customer supplies a method']
+    ],
+    flag:['CONFLICT — policies.md:54 vs :88','Line 54 makes <span class="mono">lifetime spend &gt; $2000</span> a <b style="color:var(--tx)">hard escalation trigger</b>. Line 88 makes the same threshold advisory — “<i>consider</i> escalating.” Taylor is at $4,205. Escalate now, or wait out the 48h? Two clauses, opposite answers. <b style="color:var(--tx)">Owner: Ops.</b>'],
+    actions:[['Resend update-card link','primary'],['Escalate now (high-value)',''],['Pause subscription','']]
+  },
+  {
+    id:'iss_002', lane:'review', type:'Missed installment',
+    title:'Installment 3 of 4 missed — day 5 of 7',
+    customer:'Jamie Rodriguez', cust_id:'cust_108', email:'jamie.rodriguez@email.com', merchant:'FitnessGear.com',
+    txn:'txn_4892', amount:62.50, opened:'2025-01-12T00:00Z',
+    clock:'Grace period ends 2025-01-15 (day 7)',
+    facts:[
+      ['Customer','Jamie Rodriguez · cust_108 · risk medium'],
+      ['Lifetime','$580.00 · 4 txns · 3 ok / 1 failed'],
+      ['History','1 dispute filed · 0 won'],
+      ['Plan','4 × $62.50 · 2 paid · was due 2025-01-08'],
+      ['Overdue','5 days'],
+      ['Other plans','2 active installment plans']
+    ],
+    trace:[
+      ['policies.md:39','<b>Auto-resolve if ≤ 3 days overdue.</b> Day 5 → not satisfied.','not_met'],
+      ['policies.md:37','<b>Escalate if more than 7 days overdue.</b> Day 5 → not satisfied either. <i>No rule covers day 5.</i>','not_met'],
+      ['policies.md:37','<b>OR customer has missed payments on multiple plans.</b> 2 active plans, 1 missed — the clause admits both readings.','conflict'],
+      ['policies.md:40','<b>Auto-resolve requires risk score “low.”</b> Jamie is medium → blocked regardless.','not_met']
+    ],
+    gates:[
+      ['fail','Customer risk','medium — auto-execute requires low (policies.md:40)'],
+      ['fail','Unambiguous inputs','“missed payments on multiple plans” has two readings'],
+      ['pass','Bounded amount','$62.50'],
+      ['pass','Reversible','A retry can be reversed; a paused plan can be resumed']
+    ],
+    flag:['GAP — policies.md:37 vs :39','Auto-resolve stops at <b style="color:var(--tx)">day 3</b>. Escalation starts at <b style="color:var(--tx)">day 8</b>. <b style="color:var(--tx)">Days 4–7 have no rule at all</b> — Jamie is sitting in the hole. Separately, “<span class="mono">customer has missed payments on multiple plans</span>” (:37) could mean <i>missed on &gt;1 plan</i> (Jamie: no) or <i>has &gt;1 plan and missed</i> (Jamie: yes). <b style="color:var(--tx)">Owner: Risk.</b>'],
+    actions:[['Retry payment','primary'],['Modify plan schedule',''],['Pause plan',''],['Escalate','']]
+  },
+  {
+    id:'iss_001', lane:'blocked', type:'Decline · insufficient funds',
+    title:'Retry budget exhausted — or one left',
+    customer:'Alex Chen', cust_id:'cust_042', email:'alex.chen@email.com', merchant:'TechGadgets.com',
+    txn:'txn_5521', amount:89.99, opened:'2025-01-13T03:22Z',
+    clock:'Next retry window opens 2025-01-15 03:22Z — if a retry is owed',
+    facts:[
+      ['Customer','Alex Chen · cust_042 · risk low'],
+      ['Lifetime','$1,847.50 · 12 txns · 11 ok / 3 failed'],
+      ['Transaction','txn_5521 · $89.99 · failed (insufficient_funds)'],
+      ['Retries so far','auto_retry_count = 2'],
+      ['Method','card_visa_4242'],
+      ['Also open','iss_004 — refund on txn_5998, same customer']
+    ],
+    trace:[
+      ['policies.md:13','<b>Auto-retry: up to 3 attempts total.</b> Original + 2 retries = 3 → <b>exhausted, escalate now.</b>','conflict'],
+      ['policies.md:16','<b>Escalate when the third retry fails.</b> Only 2 retries so far → <b>one attempt still owed.</b>','conflict'],
+      ['policies.md:15','<b>Notify after the second failed attempt.</b> Second <i>attempt</i> or second <i>retry</i>? Depends on the count above.','conflict']
+    ],
+    gates:[
+      ['fail','Unambiguous inputs','The retry budget is undefined — the system cannot count its own attempts'],
+      ['na','Everything downstream','Blocked until the count is settled']
+    ],
+    flag:['CONTRADICTION — policies.md:13 vs :16','“Up to <b style="color:var(--tx)">3 attempts total</b>” and “when the <b style="color:var(--tx)">third retry</b> fails” are different numbers — 3 attempts vs 4. At <span class="mono">auto_retry_count = 2</span> the two readings give <b style="color:var(--tx)">opposite verdicts on the same row</b>: escalate today, or retry Wednesday. <b style="color:var(--tx)">Owner: Finance.</b>'],
+    actions:[['Escalate now',''],['Schedule 3rd retry',''],['Request ruling from Finance','primary']]
+  },
+  {
+    id:'iss_003', lane:'escalated', type:'Dispute · item not received',
+    title:'$249 dispute — parcel still in transit',
+    customer:'Morgan Patel', cust_id:'cust_217', email:'morgan.patel@email.com', merchant:'FashionForward',
+    txn:'txn_6103', amount:249.00, opened:'2025-01-13T08:15Z',
+    clock:'Carrier ETA 2025-01-14 — 1 day out · last scan Jan 12 09:00Z',
+    facts:[
+      ['Customer','Morgan Patel · cust_217 · risk low'],
+      ['Lifetime','$312.00 · 2 txns · newest account (2024-06-01)'],
+      ['Transaction','txn_6103 · $249.00 · completed 2025-01-01'],
+      ['Carrier','UPS 1Z999AA10123456784'],
+      ['Tracking','in_transit · Distribution Center, Chicago IL'],
+      ['Age','12 days since purchase']
+    ],
+    trace:[
+      ['policies.md:51','<b>Auto-resolve when tracking shows “delivered” AND 3+ days since delivery.</b> Status is in_transit → not satisfied.','not_met'],
+      ['policies.md:53','<b>Escalate when dispute amount exceeds $200.</b> $249 → <b>fires.</b>','fired'],
+      ['policies.md:54','<b>Escalate when lifetime spend &gt; $2000.</b> Morgan is at $312 → does not fire.','not_met'],
+      ['policies.md:55','<b>Escalate when merchant has history of fulfillment issues.</b> No merchant entity exists — see flag.','missing'],
+      ['policies.md:56','<b>Required context: tracking, delivery confirmation, comms history.</b> 1 of 3 available.','missing']
+    ],
+    gates:[
+      ['na','Disputes never auto-execute','No dispute path clears the authority boundary at any amount']
+    ],
+    flag:['MISSING INPUT — policies.md:55','The rule needs <span class="mono">merchant fulfillment history</span>. <b style="color:var(--tx)">No such entity exists in the dataset</b> — merchant is a bare string on the transaction. Same for delivery confirmation events and customer comms history (:56). The verdict here is correct by accident: the $200 trigger fires anyway. <b style="color:var(--tx)">Owner: Data / Eng.</b>'],
+    actions:[['Assign to specialist','primary'],['Hold until carrier ETA (Jan 14)',''],['Contact merchant',''],['Refund customer','danger']]
+  }
+];
+
+/* ---- policies.md, transcribed verbatim with source line numbers ---- */
+const POLICY = {
+  declines:{ title:'Declined Payments', line:7, subs:[
+    {key:'insufficient_funds', title:'Insufficient Funds', bullets:[
+      [13,'<b>Auto-retry:</b> Up to 3 attempts total'],
+      [14,'<b>Retry timing:</b> Wait 2 days between retries'],
+      [15,'<b>Customer notification:</b> Send after the second failed attempt'],
+      [16,'<b>Escalate when:</b> Third retry fails, or customer contacts support'],
+      [17,'<b>Can auto-resolve:</b> No — requires either successful retry or human decision']]},
+    {key:'card_expired', title:'Expired Card', bullets:[
+      [23,'<b>Auto-retry:</b> No — retrying won\'t help'],
+      [24,'<b>Customer notification:</b> Immediately request updated payment method'],
+      [25,'<b>Escalate when:</b> No response after 48 hours AND it\'s a recurring subscription'],
+      [26,'<b>Can auto-resolve:</b> No — customer must provide new payment method']]}]},
+  installments:{ title:'Missed Installments', line:30, subs:[
+    {key:'missed', title:'Missed Installment', bullets:[
+      [34,'<b>Grace period:</b> 7 days before escalation'],
+      [35,'<b>Auto-reminders:</b> Send on day 1 and day 5 after missed payment'],
+      [36,'<b>Resolution options:</b> Retry payment, modify plan schedule, or pause plan'],
+      [37,'<b>Escalate when:</b> More than 7 days overdue OR customer has missed payments on multiple plans'],
+      [38,'<b>Can auto-resolve:</b> Yes, if ALL of these are true:'],
+      [39,'&nbsp;&nbsp;— 3 or fewer days overdue'],
+      [40,'&nbsp;&nbsp;— Customer has "low" risk score'],
+      [41,'&nbsp;&nbsp;— Retry payment succeeds']]}]},
+  disputes:{ title:'Disputes', line:45, subs:[
+    {key:'item_not_received', title:'Item Not Received', bullets:[
+      [51,'<b>Auto-resolve when:</b> Tracking shows "delivered" AND it\'s been 3+ days since delivery'],
+      [52,'<b>Escalate when:</b> Any of these are true:'],
+      [53,'&nbsp;&nbsp;— Dispute amount exceeds $200'],
+      [54,'&nbsp;&nbsp;— Customer is high-value (lifetime spend &gt; $2000)'],
+      [55,'&nbsp;&nbsp;— Merchant has history of fulfillment issues'],
+      [56,'<b>Required context:</b> Tracking info, delivery confirmation, customer communication history'],
+      [57,'<b>Can auto-resolve:</b> Only if tracking confirms delivery and no escalation triggers apply']]},
+    {key:'unauthorized', title:'Unauthorized Transaction', bullets:[
+      [63,'<b>Auto-resolve:</b> Never — fraud claims always need human review'],
+      [64,'<b>Escalate:</b> Always, immediately'],
+      [65,'<b>Priority:</b> High'],
+      [66,'<b>Required context:</b> Device fingerprint, IP address, purchase patterns']]}]},
+  refunds:{ title:'Refund Requests', line:70, subs:[
+    {key:'changed_mind', title:'Changed Mind / Buyer\'s Remorse', bullets:[
+      [76,'<b>Eligible window:</b> 14 days from purchase'],
+      [77,'<b>Auto-resolve when:</b> Within 14 days AND item hasn\'t shipped yet'],
+      [78,'<b>Escalate when:</b> Item has shipped OR more than 14 days since purchase'],
+      [79,'<b>Installment plans:</b> Refund only paid installments; cancel remaining'],
+      [80,'<b>Can auto-resolve:</b> Yes, if within window and item not yet shipped']]}]}
+};
+const GENERAL = [
+  [86,'<b>When in doubt, escalate.</b> A human reviewing a borderline case costs less than a wrong automated decision.'],
+  [88,'<b>High-value customers get extra care.</b> Even if a case could be auto-resolved, consider escalating for customers with lifetime spend &gt; $2000.'],
+  [90,'<b>Document everything.</b> Every decision—automated or human—must be logged with reasoning.'],
+  [92,'<b>Speed matters, but accuracy matters more.</b> A fast wrong decision costs more than a slightly slower correct one.']
+];
+const ISSUE_POLICY = {
+  iss_001:['declines','insufficient_funds'], iss_005:['declines','card_expired'],
+  iss_002:['installments','missed'],         iss_003:['disputes','item_not_received'],
+  iss_004:['refunds','changed_mind']
+};
+
+const NOW = '2025-01-13T12:00Z';
+
+/* A decision is stored against the policy version it ran on — that is what makes it replayable. */
+const POLICY_VERSION = {label:'policies.md v3', hash:'sha 8f2c1ab', effective:'2024-11-02'};
+const DECIDED = {
+  iss_001:'2025-01-13T03:22:04Z', iss_002:'2025-01-12T00:00:03Z', iss_003:'2025-01-13T08:15:02Z',
+  iss_004:'2025-01-13T10:45:07Z', iss_005:'2025-01-13T02:00:05Z'
+};
+const TSTAT = {
+  fired   :['✓','tf','condition met'],
+  not_met :['✕','tn','evaluated false'],
+  applied :['→','ta','instruction applied'],
+  pending :['◷','tp','clock running'],
+  conflict:['⚠','tc','cannot evaluate — clauses contradict'],
+  missing :['?','tm','cannot evaluate — input absent']
+};
+
+const money = n => '$' + n.toFixed(2);
+const laneP = l => { const L = LANES[l] || {cls:'l-blocked',label:l||'unknown'};
+  return `<span class="pill ${L.cls}">${L.label}</span>`; };
+
+function facts(i){ return `<dl class="kv">${i.facts.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`; }
+function trace(i){
+  return `<div class="tracemeta">evaluated ${DECIDED[i.id]} · against <b>${POLICY_VERSION.label}</b>
+    (${POLICY_VERSION.hash}, effective ${POLICY_VERSION.effective}) · replayable against this version</div>
+  <div class="trace">${i.trace.map(([src,txt,st])=>{
+    const s = TSTAT[st] || TSTAT.applied;
+    return `<div class="clause ${s[1]}"><span class="tmark">${s[0]}</span>
+      <div><span class="dim">${src}</span> <span class="tstat">${s[2]}</span><br>${txt}</div></div>`;
+  }).join('')}</div>`;
+}
+function gates(i){
+  return i.gates.map(([st,name,note])=>
+    `<div class="gate ${st}"><span class="mark">${st==='pass'?'✓':st==='fail'?'✕':'—'}</span>
+     <div><div>${name}</div><div class="note">${note}</div></div></div>`).join('');
+}
+function flag(i){ return i.flag ? `<div class="flag"><b>${i.flag[0]}</b><div style="margin-top:5px">${i.flag[1]}</div></div>` : ''; }
+function actions(i){
+  return `<div class="actions">${i.actions.map(([l,c])=>`<button class="btn ${c}">${l}</button>`).join('')}</div>`;
+}
+
+/* ---- the two gates. Policy: may this be done? Authority: may the machine do it alone? ---- */
+const POLICY_VERDICT = {
+  iss_004:['permit',   'Auto-resolve granted',        'policies.md:77'],
+  iss_005:['refuse',   'Customer must supply method', 'policies.md:26'],
+  iss_002:['undefined','Days 4–7 covered by no rule', 'policies.md:37 / :39'],
+  iss_001:['conflict', 'Retry budget self-contradicts','policies.md:13 vs :16'],
+  iss_003:['refuse',   'Escalation trigger fired',    'policies.md:53']
+};
+const VSTYLE = {permit:'v-ok', clear:'v-ok', refuse:'v-no', denied:'v-no',
+                undefined:'v-gap', conflict:'v-gap', not_reached:'v-dim'};
+
+function authorityVerdict(i){
+  const n = i.gates.length;
+  const pass = i.gates.filter(g=>g[0]==='pass').length;
+  const fail = i.gates.filter(g=>g[0]==='fail').length;
+  if(fail) return ['denied', `${fail} of ${n} gate${n>1?'s':''} failed`];
+  if(pass === n) return ['clear', `${pass} of ${n} gates passed`];
+  return ['not_reached', 'no executable action available'];
+}
+
+function gateHeader(i){
+  const [pv, plabel, psrc] = POLICY_VERDICT[i.id];
+  const [av, anote] = authorityVerdict(i);
+  const human = i.lane === 'executed' ? 'no human involved' : 'human required';
+  const box = (kind, state, label, note) => `<div class="vbox ${VSTYLE[state]}">
+      <div class="vkind">${kind}</div>
+      <div class="vstate">${state.replace('_',' ')}</div>
+      <div class="vnote">${label}</div>
+      <div class="vsrc">${note}</div>
+    </div>`;
+  return `<div class="gatehdr">
+    ${box('Policy — may this be done?', pv, plabel, psrc)}
+    <div class="vop">AND</div>
+    ${box('Authority — may we do it alone?', av, anote, 'engineering-owned, not in policies.md')}
+    <div class="vop">→</div>
+    <div class="vbox vout">
+      <div class="vkind">Outcome</div>
+      <div class="vstate">${LANES[i.lane].label}</div>
+      <div class="vnote">${human}</div>
+      <div class="vsrc">${i.clock}</div>
+    </div>
+  </div>`;
+}
+
+/* ---- policy panel: the governing section, verbatim, cited lines lit up ---- */
+function policyPanel(i){
+  const [secKey, subKey] = ISSUE_POLICY[i.id];
+  const sec = POLICY[secKey];
+  const cited = new Set(i.trace.map(t => +t[0].split(':')[1]));
+  const citedGeneral = GENERAL.filter(([n]) => cited.has(n));
+
+  if(!F.policy) return `<div class="sect"><h4>Policy source</h4>
+    <button class="btn" onclick="F.policy=true;render()">Show ${sec.title} policy</button>
+    <span class="dim" style="font-size:12px;margin-left:9px">${sec.title} · policies.md:${sec.line}${
+      citedGeneral.length?` · ${citedGeneral.length} general guideline${citedGeneral.length>1?'s':''} also applied`:''}</span>
+  </div>`;
+
+  const bullets = (bs) => `<ul class="pol">${bs.map(([n,t])=>
+    `<li class="${cited.has(n)?'lit':''}"><span class="ln">${n}</span><span>${t}</span></li>`).join('')}</ul>`;
+
+  return `<div class="sect">
+    <h4>Policy source
+      <button class="linkbtn" onclick="F.policy=false;render()">hide</button>
+      <span class="dim" style="text-transform:none;letter-spacing:0">— unmodified document; highlighted lines are the ones cited above</span>
+    </h4>
+    <div class="polbox">
+      <div class="polhead">## ${sec.title} <span class="dim">policies.md:${sec.line}</span></div>
+      ${sec.subs.map(s => s.key===subKey
+        ? `<div class="polsub active">
+             <div class="polsubhead">### ${s.title} <span class="pill l-awaiting">applies</span></div>
+             ${bullets(s.bullets)}
+           </div>`
+        : `<details class="polsub"><summary>### ${s.title} <span class="dim">— same section, not this case</span></summary>
+             ${bullets(s.bullets)}
+           </details>`).join('')}
+      <details class="polsub" ${citedGeneral.length?'open':''}>
+        <summary>## General Guidelines <span class="dim">policies.md:84</span>${
+          citedGeneral.length?` <span class="pill l-review">${citedGeneral.length} applied</span>`:''}</summary>
+        ${bullets(GENERAL)}
+      </details>
+    </div>
+  </div>`;
+}
+
+/* ---------------- V1 · SPLIT QUEUE ---------------- */
+let sel = 'iss_002';
+const F = {q:'', lane:'all', sort:'opened_desc', policy:true};
+const SORTS = [
+  ['opened_desc','Newest first'], ['opened_asc','Oldest first'],
+  ['type','Issue type'], ['customer','Customer name'],
+  ['amount_desc','Amount, high → low'], ['amount_asc','Amount, low → high']
+];
+function setF(k,v){ F[k]=v; render(); }
+
+function queue(){
+  const q = F.q.trim().toLowerCase();
+  let out = ISSUES.filter(x=>{
+    if(F.lane!=='all' && x.lane!==F.lane) return false;
+    if(!q) return true;
+    return [x.customer,x.email,x.cust_id,x.id,x.merchant,x.type,x.title]
+      .join(' ').toLowerCase().includes(q);
+  });
+  const by = {
+    opened_desc:(a,b)=>b.opened.localeCompare(a.opened),
+    opened_asc :(a,b)=>a.opened.localeCompare(b.opened),
+    type       :(a,b)=>a.type.localeCompare(b.type) || a.opened.localeCompare(b.opened),
+    customer   :(a,b)=>a.customer.localeCompare(b.customer) || a.opened.localeCompare(b.opened),
+    amount_desc:(a,b)=>b.amount-a.amount,
+    amount_asc :(a,b)=>a.amount-b.amount
+  }[F.sort];
+  return out.sort(by);
+}
+
+function filterbar(shown){
+  const lanes = [['all','All',ISSUES.length]].concat(
+    Object.keys(LANES).map(k=>[k,LANES[k].label,ISSUES.filter(x=>x.lane===k).length]));
+  return `<div class="filters">
+    <input id="q" type="search" placeholder="Search name, email, issue id, merchant…"
+      value="${F.q.replace(/"/g,'&quot;')}" oninput="F.q=this.value;render()">
+    <div class="frow">
+      <label><span>Sort by</span>
+        <select onchange="setF('sort',this.value)">
+          ${SORTS.map(([v,l])=>`<option value="${v}" ${F.sort===v?'selected':''}>${l}</option>`).join('')}
+        </select></label>
+    </div>
+    <div class="chips">
+      ${lanes.map(([k,l,n])=>`<button class="chip" aria-pressed="${F.lane===k}"
+        onclick="setF('lane','${k}')">${l} ${n}</button>`).join('')}
+    </div>
+    <div class="dim mono" style="font-size:11px">showing ${shown} of ${ISSUES.length}${
+      (F.q||F.lane!=='all') ? ` · <a href="#" onclick="F.q='';setF('lane','all');return false">clear</a>` : ''}</div>
+  </div>`;
+}
+
+function v1(){
+  const list = queue();
+  if(list.length && !list.some(x=>x.id===sel)) sel = list[0].id;
+  const i = ISSUES.find(x=>x.id===sel) || ISSUES[0];
+  return `<div class="split">
+    <div class="card" style="overflow:hidden">
+      <div style="padding:11px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+        <h3 style="font-size:13px">Open issues</h3><span class="dim mono" style="font-size:11px">1 auto-resolved</span>
+      </div>
+      ${filterbar(list.length)}
+      ${list.length===0 ? `<div class="empty">No issues match.</div>` : ''}
+      ${list.map(x=>`
+        <button class="qrow" aria-current="${x.id===sel}" onclick="sel='${x.id}';render()">
+          <div class="r1"><strong style="font-size:13px">${x.customer}</strong><span class="amt">${money(x.amount)}</span></div>
+          <div class="r2"><span class="dim mono" style="font-size:11px">${x.email}</span><br>${x.title}</div>
+          <div class="r3">${laneP(x.lane)}<span class="dim mono" style="font-size:11px">${x.id} · ${x.merchant} · ${x.opened.replace('2025-01-','Jan ').replace('T',' ')}</span></div>
+        </button>`).join('')}
+    </div>
+    <div class="card detail">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div>
+          <div class="dim mono" style="font-size:11.5px">${i.id} · ${i.type}</div>
+          <h2 style="font-size:19px;margin:5px 0">${i.title}</h2>
+          <div class="clock">${i.clock}</div>
+        </div>
+        <div style="text-align:right">${laneP(i.lane)}<div class="amt" style="font-size:20px;margin-top:7px">${money(i.act_amount ?? i.amount)}</div></div>
+      </div>
+      ${gateHeader(i)}
+      ${i.flag?`<div class="sect">${flag(i)}</div>`:''}
+      <div class="sect"><h4>Context</h4>${facts(i)}</div>
+      <div class="sect"><h4>How this was decided <span class="dim" style="text-transform:none;letter-spacing:0">— the stored decision record (policies.md:90)</span></h4>${trace(i)}</div>
+      ${policyPanel(i)}
+      <div class="sect"><h4>Authority boundary <span class="dim" style="text-transform:none;letter-spacing:0">— separate gate from policy</span></h4>${gates(i)}</div>
+      <div class="sect"><h4>Actions</h4>${actions(i)}</div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- V2 · FOCUS ---------------- */
+let fi = 0;
+function v2(){
+  const q = ISSUES.filter(x=>x.lane!=='executed');
+  const i = q[fi % q.length];
+  return `<div class="focus">
+    <div class="stepper">
+      <button class="btn" onclick="fi=(fi-1+${q.length})%${q.length};render()">← prev</button>
+      <span>case ${(fi%q.length)+1} of ${q.length} needing you · ${ISSUES.length-q.length} auto-resolved out of sight</span>
+      <button class="btn" onclick="fi=(fi+1)%${q.length};render()">next →</button>
+    </div>
+    <div class="card hero">
+      ${laneP(i.lane)}
+      <div class="q">${i.title}</div>
+      <div class="muted">${i.customer} · ${i.merchant} · <span class="amt">${money(i.amount)}</span> · <span class="mono dim">${i.id}</span></div>
+      <div class="verdictbig">
+        <span class="big" style="color:var(--tx2)">WHY YOU</span>
+        <span>${i.flag ? i.flag[0].split(' — ')[0] + ' in the policy — the system cannot decide this alone.'
+                        : 'Policy permits action, but the authority boundary was not cleared.'}</span>
+      </div>
+      ${i.flag?flag(i):''}
+      <div class="sect"><h4>What the system checked</h4>${trace(i)}</div>
+      <div class="sect"><h4>Authority boundary</h4>${gates(i)}</div>
+      <div class="sect"><h4>Context</h4>${facts(i)}</div>
+      <div class="sect"><h4>Your call</h4>${actions(i)}
+        <div class="dim" style="font-size:12px;margin-top:9px">Every choice is logged with reasoning — policies.md:90.</div></div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- V3 · LANES ----------------
+   `lane` is the decision OUTCOME. Routing is a separate question:
+   who owns the next move, and is a human decision available right now?
+   Two fields, deliberately not flattened into one.                     */
+const ROUTE = {
+  iss_004:{blocked_on:'nobody',   decision_owed:false, expires:null,
+           promo:null, note:'Settled — refund executed, plan cancelled'},
+  iss_003:{blocked_on:'carrier',  decision_owed:false, expires:'Jan 14 (UPS ETA)',
+           promo:null, note:'Parcel in transit. No human move changes the outcome before it scans.'},
+  iss_005:{blocked_on:'customer', decision_owed:true,  expires:'Jan 15 02:00Z',
+           promo:'policies.md:25', note:'Blocked on the customer for the card — but the high-value escalation question is owed today.'},
+  iss_002:{blocked_on:'nobody',   decision_owed:true,  expires:'Jan 15 (day 7)',
+           promo:'policies.md:34', note:'Nobody is coming. Day 5 sits in the uncovered range; only a human can move it.'},
+  iss_001:{blocked_on:'internal', decision_owed:true,  expires:null,
+           promo:null, note:'Finance must rule on the retry budget before the clock can even be computed.'}
+};
+const OWNER_LABEL = {nobody:'no external party', customer:'the customer', carrier:'the carrier',
+                     merchant:'the merchant', internal:'an internal owner'};
+
+function v3(){
+  const TEST = 'Test applied: <b style="color:var(--tx)">is there an action available right now that would change the outcome?</b>';
+  const groups = [
+    ['System handled it', x => x.lane==='executed',
+      'Both gates opened — policy permitted it AND the authority boundary cleared. Shown for audit, not action.'],
+    ['Blocked on someone else', x => x.lane!=='executed' && !ROUTE[x.id].decision_owed,
+      TEST + ' <b style="color:var(--tx)">No.</b> The next move belongs to an external party. Monitor this column; do not staff it.'],
+    ['Decision owed by you', x => x.lane!=='executed' && ROUTE[x.id].decision_owed,
+      TEST + ' <b style="color:var(--tx)">Yes.</b> This is the only column that consumes operator time.']
+  ];
+  const routeline = x => {
+    const r = ROUTE[x.id];
+    if(r.blocked_on==='nobody' && !r.expires) return '';
+    const leak = r.expires && !r.promo;
+    return `<div class="route">
+      <span class="dim">blocked on</span> ${OWNER_LABEL[r.blocked_on]}
+      ${r.expires ? `· <span class="dim">expires</span> ${r.expires}` : '· <span class="warnx">no expiry defined</span>'}
+      ${r.promo ? `<span class="promo ok">promoted by ${r.promo}</span>`
+                : `<span class="promo bad">${leak?'carrier estimate only — no policy rule promotes this':'nothing promotes this on expiry'}</span>`}
+    </div>`;
+  };
+  return `<div class="lanes">${groups.map(([t,fn,cap])=>{
+    const items = ISSUES.filter(fn);
+    return `<div class="lane card">
+      <header><h3>${t}</h3><span class="dim mono" style="font-size:11px">${items.length}</span></header>
+      <div class="cap">${cap}</div>
+      ${items.map(x=>`<div class="lcard">
+        ${laneP(x.lane)}
+        <h4 style="margin-top:7px">${x.title}</h4>
+        <div class="meta">${x.customer} · ${money(x.act_amount ?? x.amount)} · ${x.merchant}</div>
+        ${routeline(x)}
+        <div class="why">${ROUTE[x.id].note}</div>
+      </div>`).join('')}
+    </div>`;}).join('')}</div>
+
+  <div class="card" style="padding:14px;margin-top:16px">
+    <h4 style="font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);margin-bottom:8px">What this split is really saying</h4>
+    <div class="muted" style="font-size:13px;max-width:940px;display:flex;flex-direction:column;gap:9px">
+      <div><b style="color:var(--tx)">Outcome and routing are different fields.</b> An issue's lane says what was decided;
+      <span class="mono">blocked_on</span> + <span class="mono">decision_owed</span> say who moves next. Flatten them into one column
+      and cases land in the wrong place — <span class="mono">iss_003</span> looks like work when nothing can be done until the parcel scans,
+      and <span class="mono">iss_005</span> looks passive while a high-value escalation call goes unmade.</div>
+      <div><b style="color:var(--tx)">One issue can be blocked on two different parties at once.</b> <span class="mono">iss_005</span> waits on the
+      customer for a card <i>and</i> owes a human the escalate-or-wait decision today. That is why routing cannot be a single enum.</div>
+      <div><b style="color:var(--tx)">Waiting without a promotion rule is a queue leak.</b> Only <span class="mono">iss_005</span> and
+      <span class="mono">iss_002</span> have a clock that policy actually promotes on expiry. <span class="mono">iss_003</span> has a carrier
+      estimate and no rule behind it; <span class="mono">iss_001</span> has no computable expiry at all until Finance rules on the retry budget.
+      Those two can sit here forever and nobody would be alerted.</div>
+      <div>1 of 5 cleared both gates. 3 of the remaining 4 are blocked <b style="color:var(--tx)">not by risk but by the policy document itself</b>.
+      Each prose fix moves volume leftward — that is the product's growth curve.</div>
+    </div>
+  </div>`;
+}
+
+/* ---------------- V4 · FORECAST ----------------
+   Forward-only. Not a log — a scheduler. What fires, when, and what
+   happens if nobody acts. Per-issue history belongs in the detail pane. */
+const KIND = {
+  backed   :['policy-backed','k-ok',  'a rule in policies.md fires this'],
+  estimate :['third-party estimate','k-warn','no rule behind this date'],
+  contested:['contested','k-bad',    'exists only under one reading of the policy'],
+  unruled  :['no rule','k-bad',      'policies.md does not cover this event']
+};
+const SCHEDULE = [
+  {day:'Jan 13', at:'later today', id:'iss_002', kind:'backed', src:'policies.md:35',
+   what:'Day-5 automatic reminder sends to Jamie',
+   ifnothing:'Sends itself, no human needed — but it does not move the case out of the uncovered 4–7 day range.'},
+  {day:'Jan 14', at:'—', id:'iss_003', kind:'estimate', src:'UPS estimate',
+   what:'Parcel estimated to deliver',
+   ifnothing:'If it scans delivered, the dispute still cannot auto-resolve — :51 needs delivered + 3 days and the $200 trigger at :53 already fired. If it never scans again, <b>nothing fires at all</b>.'},
+  {day:'Jan 15', at:'02:00Z', id:'iss_005', kind:'backed', src:'policies.md:25',
+   what:'48-hour response window closes → escalate',
+   ifnothing:'Escalates on its own. But :54 arguably required escalation on Jan 13 — that would be three days of unmanaged high-value exposure.'},
+  {day:'Jan 15', at:'03:22Z', id:'iss_001', kind:'contested', src:'policies.md:14',
+   what:'Third retry window opens — only if the budget is 4 attempts',
+   ifnothing:'Either a retry fires against Alex\'s card, or this date should not exist. The system cannot tell which, so it schedules nothing.'},
+  {day:'Jan 15', at:'day 7', id:'iss_002', kind:'backed', src:'policies.md:34',
+   what:'Grace period ends → escalation becomes mandatory',
+   ifnothing:'Escalates. Days 4–7 will have elapsed with no rule governing them.'},
+  {day:'Jan 17', at:'—', id:'iss_003', kind:'estimate', src:'policies.md:51 (conditional)',
+   what:'Earliest date the delivered + 3 days test could pass',
+   ifnothing:'Only reachable if the parcel scanned on Jan 14. Nothing schedules this — it is a consequence of an estimate.'},
+  {day:'Jan 20', at:'—', id:'iss_005', kind:'unruled', src:'—',
+   what:'Next subscription box ships against a still-expired card',
+   ifnothing:'A second failure on a 14-month, $4,205 relationship. <b>Nothing in policies.md stops the shipment or the re-charge.</b>'}
+];
+
+function v4(){
+  const days = [...new Set(SCHEDULE.map(e=>e.day))];
+  const open = ISSUES.filter(x=>x.lane!=='executed');
+  const backed = new Set(SCHEDULE.filter(e=>e.kind==='backed').map(e=>e.id));
+  const leaks = open.filter(x=>!backed.has(x.id));
+
+  const ev = e => {
+    const [klabel,kcls,ktip] = KIND[e.kind];
+    const iss = ISSUES.find(x=>x.id===e.id);
+    return `<div class="ev due"><div class="dot"></div><div class="when">${e.at}</div>
+      <div class="body ${kcls}">
+        <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+          ${laneP(iss.lane)}<span class="mono dim" style="font-size:11px">${e.id} · ${iss.customer}</span>
+          <span class="kind ${kcls}" title="${ktip}">${klabel}</span>
+          <span class="mono dim" style="font-size:10.5px;margin-left:auto">${e.src}</span>
+        </div>
+        <div style="font-weight:600;margin-bottom:5px">${e.what}</div>
+        <div class="muted" style="font-size:12.5px"><span class="dim mono" style="font-size:10.5px">IF NOBODY ACTS →</span> ${e.ifnothing}</div>
+      </div></div>`;
+  };
+
+  return `<div class="card" style="padding:13px 16px;margin-bottom:18px">
+      <div class="muted" style="font-size:13px;max-width:940px">Nearly every rule in <span class="mono">policies.md</span> is a clock —
+      2-day retries (:14), 48-hour responses (:25), 7-day grace (:34), day-1 and day-5 reminders (:35), a 14-day window (:76),
+      delivered + 3 days (:51). Views 1 and 3 answer <i>what needs me now</i>. This one answers
+      <b style="color:var(--tx)">what will need someone, when, and what happens if nobody acts</b> — the weekend test.</div>
+    </div>
+
+    ${days.map(d=>`<div class="dayhdr">${d}</div><div class="stream">
+        ${SCHEDULE.filter(e=>e.day===d).map(ev).join('')}
+      </div>`).join('')}
+
+    <div class="card" style="padding:14px;margin-top:6px;border-color:rgba(248,81,73,.35)">
+      <h4 style="font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--bad);margin-bottom:4px">
+        Nothing scheduled — ${leaks.length} of ${open.length} open issues</h4>
+      <div class="muted" style="font-size:12.5px;margin-bottom:11px">No policy-backed event will ever fire for these. They do not appear
+      on the calendar above because <b style="color:var(--tx)">there is nothing to put there</b> — which is exactly how a queue leak behaves in production.</div>
+      ${leaks.map(x=>`<div class="lcard" style="margin-bottom:8px">
+        ${laneP(x.lane)}
+        <h4 style="margin-top:7px">${x.title}</h4>
+        <div class="meta">${x.customer} · ${money(x.amount)} · ${x.merchant}</div>
+        <div class="why">${ROUTE[x.id].promo ? '' : ROUTE[x.id].expires
+          ? `Has a date (<span class="mono">${ROUTE[x.id].expires}</span>) but no rule behind it — if that date slips, nothing notices.`
+          : 'No computable expiry at all. ' + ROUTE[x.id].note}</div>
+      </div>`).join('')}
+    </div>
+
+    <div class="card" style="padding:14px;margin-top:14px">
+      <h4 style="font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);margin-bottom:8px">What this view is really saying</h4>
+      <div class="muted" style="font-size:13px;max-width:940px;display:flex;flex-direction:column;gap:9px">
+        <div><b style="color:var(--tx)">A queue you refresh does not scale; a scheduler with promotion rules does.</b>
+        Of ${SCHEDULE.length} upcoming events, only ${SCHEDULE.filter(e=>e.kind==='backed').length} are fired by an actual rule.
+        The rest rest on a carrier's estimate, a contested reading, or nothing at all.</div>
+        <div><b style="color:var(--tx)">The worst event on this calendar is Jan 20</b> — a 14-month subscriber's box ships against a dead card,
+        seven days out, and no clause in the document prevents it. That failure is visible <i>only</i> on a forecast; no queue view shows it.</div>
+      </div>
+    </div>`;
+}
+
+/* ---------------- switcher ---------------- */
+const VIEWS = [
+  ['Split queue', 'Inbox on the left, full dossier on the right. The workhorse — dense, familiar, one issue at a time without losing the queue.', v1],
+  ['Focus mode', 'One case, full screen, auto-resolved cases hidden. Optimises for decision quality over throughput.', v2],
+  ['Autonomy lanes','Three columns by who owns the case: the system, the clock, or you. Makes the tiered-autonomy split the primary object.', v3],
+  ['Forecast','Forward-only. What fires, when, and what happens if nobody acts — plus the issues nothing will ever fire for.', v4]
+];
+function current(){ return Math.min(Math.max(+(new URLSearchParams(location.search).get('v')||1),1),VIEWS.length); }
+function render(){
+  const n = current();
+  const active = document.activeElement, caret = active && active.selectionStart;
+  document.getElementById('app').innerHTML = VIEWS[n-1][2]();
+  if(active && active.id === 'q'){                 // keep typing across re-renders
+    const el = document.getElementById('q');
+    if(el){ el.focus(); try{ el.setSelectionRange(caret,caret); }catch(e){} }
+  }
+  document.getElementById('viewnote').textContent = VIEWS[n-1][1];
+  const sw = document.getElementById('switch');
+  sw.innerHTML = '<span class="lbl">VIEW</span>' + VIEWS.map((v,k)=>
+    `<button aria-pressed="${k+1===n}" onclick="go(${k+1})">${k+1} · ${v[0]}</button>`).join('');
+}
+function go(n){ history.replaceState({},'', '?v='+n); render(); }
+render();
+</script>
+</body>
+</html>
