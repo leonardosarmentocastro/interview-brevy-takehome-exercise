@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { daysBetween, joinIssues, groupByColumn } from '../lib/viewmodel.js';
+import { DECISIONS, AGENT_SUMMARY } from '../data/decisions.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..', '..'); // repo root
@@ -36,4 +37,21 @@ test('groupByColumn buckets by decision lane', () => {
   const grouped = groupByColumn(vms);
   assert.ok(grouped.needs_review.some((v) => v.issue.id === 'iss_001'));
   assert.ok(grouped.in_review.some((v) => v.issue.id === 'iss_003'));
+});
+
+test('DECISIONS covers the three board issues with required fields', () => {
+  for (const id of ['iss_001', 'iss_002', 'iss_003']) {
+    const d = DECISIONS[id];
+    assert.ok(d, `${id} present`);
+    assert.ok(['needs_review', 'in_review', 'on_hold', 'resolved'].includes(d.lane));
+    assert.ok(['recommend', 'escalate', 'no_rule'].includes(d.why.face));
+    assert.ok(Array.isArray(d.trace) && d.trace.length > 0);
+  }
+});
+
+test('AGENT_SUMMARY totals are consistent with categories', () => {
+  const sum = (k) => AGENT_SUMMARY.categories.reduce((a, c) => a + c[k], 0);
+  for (const k of ['resolved', 'waiting', 'backlog', 'escalated']) {
+    assert.equal(AGENT_SUMMARY.totals[k], sum(k), `${k} total matches category sum`);
+  }
 });
