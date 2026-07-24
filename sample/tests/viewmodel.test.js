@@ -55,3 +55,10 @@ test('AGENT_SUMMARY totals are consistent with categories', () => {
     assert.equal(AGENT_SUMMARY.totals[k], sum(k), `${k} total matches category sum`);
   }
 });
+
+test('leak leads read "policy couldn\'t decide", not "NO RULE"', () => {
+  for (const id of ['iss_001', 'iss_002']) {
+    assert.match(DECISIONS[id].why.lead, /POLICY COULDN.T DECIDE/i);
+    assert.doesNotMatch(DECISIONS[id].why.lead, /NO RULE/i);
+  }
+});
