@@ -191,7 +191,78 @@ reading.
 
 ---
 
-## 11. Deferred / open (to challenge in later sessions)
+## 11. Operator screen — UI design decisions (session 2026-07-23)
+
+Designed interactively via mockups. Three surfaces: **board → card → detail view
+(with decision rail)**. Dark theme only (operators stare at this for hours).
+
+### 11.1 Board layout
+- Two-zone board, **symmetric bordered wrappers** so columns align: **Team backlog**
+  (shared) on the left, **My work** (private lanes) on the right.
+- Plain-language zone headers, not subtle badges ("*anyone can pick these up*" /
+  "*tickets you picked up — only you see these*"). Operators need explicit UX.
+- Columns: **Needs review** (shared) · **In review** · **On hold** · **Resolved**
+  (last three private). Escalate + auto-resolve are exits to the other two boards.
+- **Virtual-agent summary** sits above the board: collapsed by default (four totals —
+  auto-resolved / waiting / sent-to-team-backlog / escalated-to-specialist), expandable
+  to a **per-category matrix**. "Open agent view" is a real button. Note: the agent
+  promotes to the **shared team backlog**, never directly to an operator.
+
+### 11.2 The card
+- Contents: **type + amount**, **meta line** (id · customer · merchant · age),
+  **subtle risk / high-value tag**, **urgency** (left-border color + explicit SLA pill),
+  **"why it's here"**, and **actions** (`Open ticket` gray, then a red-ish action).
+- **Urgency border**, not type: 🔴 breaching (pulses) / 🟡 due-soon / ⚫ no-clock.
+  Type is already in the text, so color is spent on urgency instead.
+- **Tight palette** (max colors so a 10+ card board stays calm): **red** escalate/
+  breaching · **green** go/approve · **amber** due-soon · **gray** neutral. No blue/purple
+  on tickets.
+- **"Why it's here" = one slot, three faces:** **Recommend an action** (green, you
+  confirm) · **Escalate** (red, hand off) · **No rule / leak** (gray, you decide — the
+  broken clause *is* the message; never fake a recommendation). This is the product's
+  edge over a generic ticket queue.
+- **No "confidence" score** — a policy verdict is deterministic, not probabilistic;
+  the honest signal is decisive / evaluated-with-gaps, carried by the recommend vs
+  no-rule distinction and the DATA GAP note.
+
+### 11.3 Detail view (what "Open ticket" opens into)
+- **Full view** (not a drawer), **60 / 40** main-column / decision-rail split.
+- Top bar holds **only** the "← Board" button — no scattered data.
+- Main column, in order: **card-like header** (ids → type + amount → SLA badge) →
+  **recommendation** (fits its content) → **decision record** → dividers → **Context**
+  → divider → **Related**.
+- **Decision record = a timeline** (the agent's ordered reading), each node labeled
+  **RULE** (what the policy says) / **EVIDENCE** (what we found), flowing into the
+  **conclusion** node. A **DATA GAP** callout flags rules that reference absent data.
+- Every **`policies.md:NN`** reference is a **link → opens a dialog** showing that exact
+  line highlighted in the policy doc.
+- **Typography = one consistent system** (shadcn-*inspired*, but our own tokens):
+  `## Context` > `### Customer` > table rows; keys and values share one font family,
+  differentiated by color/weight only. Section titles larger than sub-headings.
+- Context shipping has a **dedicated Status row** (Carrier / Status split).
+
+### 11.4 Decision rail + actions
+- **No drag-and-drop in v1.** Movement happens inside the detail view (and via card
+  shortcuts). Rationale: every consequential move must **capture a reason** (audit,
+  `:90`), so a drop would need a modal anyway — drag is a shortcut, not the action.
+- Rail is **state-driven**: available actions come from ticket type + column, with the
+  **recommended** action primary and **"other legal moves"** below a divider.
+  (Dispute → escalate / hold / resolve; missed installment → retry / modify / pause /
+  escalate / hold.)
+- **Always capture:** every action — rail *or* card shortcut — opens the **same capture
+  component** (reason pre-filled from policy) and commits nothing without **Confirm**.
+  It writes the audit record (who, when, action, reason, policy version).
+- Capture presentation: **inline-expand in the rail**, **popover on the card**.
+- **Cancel** appears **only on the card popover** (you're floated into a capture and
+  need a way out); the rail needs only **Confirm** (you can pick another action or
+  leave). Card buttons are **50/50**; the rail's Confirm is **fit-content**.
+
+Mockups: `.superpowers/brainstorm/` (board-layout, card-anatomy, detail-view,
+decision-rail series). Not committed (gitignored, throwaway).
+
+---
+
+## 12. Deferred / open (to challenge in later sessions)
 
 - Operator **privileges / roles** (standard vs manager vs specialist visibility).
   Current assumption: single standard operator, already "logged in."
@@ -199,5 +270,7 @@ reading.
 - The **inter-board handoff UI** (how promotion/escalation looks and feels).
 - **Data gaps**: merchant entity, delivery-confirmation events, comms history do
   not exist in the fixtures and several rules depend on them.
-- Whether/how the operator board shows the machine's **recommendation + reasoning**
-  per ticket (strongly implied — "reasoning already done" — but not yet specced).
+- **Action-specific capture fields** beyond "reason" (e.g. On hold needs waiting-on +
+  until-date; Modify plan needs a new schedule; Escalate needs route-to).
+- Whether the exercise ships as a **live engine over the fixtures** or a refined
+  presentation mock (the original open fork, still unanswered).
