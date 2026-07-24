@@ -48,7 +48,12 @@ when the tier below cannot resolve them. Separating by *actor* is what resolves 
 
 ---
 
-## 3. Actor 1 — Virtual agent (machine) · *monitor view* (deferred build)
+## 3. Actor 1 — Virtual agent (machine) · *monitor view* (now specified)
+
+> **Now designed:** see `docs/design/2026-07-24-virtual-agent-monitor-design.md`.
+> That spec **revises the "no backlog column" call below**: it adds an **Intake
+> (unprocessed)** lane as the pipe's visible entry point (FIFO under bursts +
+> provenance). The rest of this section stands.
 
 The automation tier. **Read-only monitor, not a workspace** — no human drags a
 card; the clock moves everything.
