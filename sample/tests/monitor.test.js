@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MONITOR } from '../data/monitor.js';
 import { renderStatStrip, renderAgentLog, renderIntakeCard, renderWaitCard, renderPipeline, renderMonitor, renderIntakeDrawer, renderResolvedDrawer, renderDrill } from '../lib/monitor.js';
+import { renderPipelineNav } from '../lib/nav.js';
 
 test('MONITOR log newest-first with valid kinds and numeric refs', () => {
   assert.ok(MONITOR.log.length >= 5);
@@ -99,4 +100,12 @@ test('renderDrill has chips, searchable rows, pattern callout, drawer host', () 
   assert.match(html, /class="pattern"/);
   assert.match(html, /92 of 214/);
   assert.match(html, /<div id="drawerHost"><\/div>/);
+});
+
+test('renderPipelineNav marks the active view and links all three', () => {
+  const html = renderPipelineNav('agent');
+  assert.match(html, /class="pstep active" data-view="agent"/);
+  assert.match(html, /data-view="operator"/);
+  assert.match(html, /data-view="specialist"/);
+  assert.match(html, /for fraud &amp; escalations/);
 });
