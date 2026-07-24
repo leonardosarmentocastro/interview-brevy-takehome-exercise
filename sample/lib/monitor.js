@@ -103,3 +103,38 @@ export function renderPipeline(m) {
 export function renderMonitor(m) {
   return `${renderMonitorHeader()}${renderStatStrip(m.stats)}${renderAgentLog(m.log)}${renderPipeline(m)}<div id="drawerHost"></div>`;
 }
+
+const kvRows = (pairs) => pairs.map(([k, v]) => `<tr><td class="k">${esc(k)}</td><td class="v">${esc(v)}</td></tr>`).join('');
+
+export function renderIntakeDrawer(it) {
+  return `<div class="drawerwrap open"><div class="drawerbg" data-action="close-drawer"></div>
+    <div class="drawer">
+      <div class="dh"><span class="ids">${esc(it.id)}</span><button class="close" data-action="close-drawer">✕</button></div>
+      <span class="dpill intake">Intake — not yet evaluated</span>
+      <div class="dtype"><span class="ty">${esc(it.type)}</span><span class="am">${esc(it.amountText)}</span></div>
+      <div class="dsec">Ticket</div><table class="dtable">${kvRows(it.facts.ticket)}</table>
+      <div class="dsec">Customer</div><table class="dtable">${kvRows(it.facts.customer)}</table>
+      <div class="dnote"><b>No agent analysis yet.</b> This ticket is still in intake — the engine hasn’t evaluated it against policy. Facts only: no recommendation, no decision timeline. Those appear once it moves into Waiting or Resolved.</div>
+    </div></div>`;
+}
+
+export function renderResolvedDrawer(a) {
+  const steps = a.trace.map((c) =>
+    `<div class="step"><div class="dot"></div>
+      <div class="shead">${policyLink(c.src)}<span class="st">✓ ${esc(c.status)}</span></div>
+      <div class="ln"><span class="pfx">RULE</span><span class="val">${esc(c.rule)}</span></div>
+      <div class="ln"><span class="pfx">EVIDENCE</span><span class="val">${esc(c.evidence)}</span></div>
+    </div>`).join('');
+  return `<div class="drawerwrap open"><div class="drawerbg" data-action="close-drawer"></div>
+    <div class="drawer">
+      <div class="dh"><span class="ids">${esc(a.id)} · ${esc(a.txnId)}</span><button class="close" data-action="close-drawer">✕</button></div>
+      <span class="dpill done">Resolved automatically · ${esc(a.resolvedAt)}</span>
+      <div class="dtype"><span class="ty">${esc(a.type)}</span><span class="am">${esc(a.amountText)}</span></div>
+      <div class="dsec">What the agent decided</div>
+      <div class="rec"><div class="lead">${esc(a.rec.lead)}</div><div class="bc">${a.rec.because} See ${policyLink(a.rec.ref)}.</div></div>
+      <div class="dsec">How it got there</div>
+      <div class="tl">${steps}<div class="step end"><div class="dot"></div><div class="concl">${esc(a.conclusion)}</div></div></div>
+      <div class="dsec">Context</div><table class="dtable">${kvRows(a.context)}</table>
+      <div class="dfoot">Logged automatically — ${a.audit}</div>
+    </div></div>`;
+}

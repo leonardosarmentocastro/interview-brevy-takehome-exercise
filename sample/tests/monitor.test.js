@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MONITOR } from '../data/monitor.js';
-import { renderStatStrip, renderAgentLog, renderIntakeCard, renderWaitCard, renderPipeline, renderMonitor } from '../lib/monitor.js';
+import { renderStatStrip, renderAgentLog, renderIntakeCard, renderWaitCard, renderPipeline, renderMonitor, renderIntakeDrawer, renderResolvedDrawer } from '../lib/monitor.js';
 
 test('MONITOR log newest-first with valid kinds and numeric refs', () => {
   assert.ok(MONITOR.log.length >= 5);
@@ -69,4 +69,23 @@ test('renderPipeline has three lanes, counts, sim + drill hooks', () => {
 
 test('renderMonitor mounts a drawer host', () => {
   assert.match(renderMonitor(MONITOR), /<div id="drawerHost"><\/div>/);
+});
+
+test('renderIntakeDrawer is facts-only (no recommendation/timeline)', () => {
+  const html = renderIntakeDrawer(MONITOR.intake[0]);
+  assert.match(html, /Intake — not yet evaluated/);
+  assert.match(html, /No agent analysis yet/);
+  assert.match(html, /data-action="close-drawer"/);
+  assert.doesNotMatch(html, /class="rec"/);
+  assert.doesNotMatch(html, /class="tl"/);
+});
+
+test('renderResolvedDrawer shows recommendation, timeline, audit', () => {
+  const html = renderResolvedDrawer(MONITOR.analysis.iss_004);
+  assert.match(html, /AUTO-RESOLVED — refund approved/);
+  assert.match(html, /class="tl"/);
+  assert.match(html, /RULE/);
+  assert.match(html, /EVIDENCE/);
+  assert.match(html, /data-line="77"/);
+  assert.match(html, /policy version:/);
 });
