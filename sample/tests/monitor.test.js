@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MONITOR } from '../data/monitor.js';
-import { renderStatStrip, renderAgentLog } from '../lib/monitor.js';
+import { renderStatStrip, renderAgentLog, renderIntakeCard, renderWaitCard, renderPipeline, renderMonitor } from '../lib/monitor.js';
 
 test('MONITOR log newest-first with valid kinds and numeric refs', () => {
   assert.ok(MONITOR.log.length >= 5);
@@ -39,4 +39,34 @@ test('renderAgentLog is a collapsed details with latest line + policy links', ()
   assert.match(html, /data-line="77"/);                 // a ref rendered as policy link
   assert.match(html, /lrow leak/);                      // leak entries get the class
   assert.match(html, /7 events today/);
+});
+
+test('renderIntakeCard has evaluating state + facts-only view hook', () => {
+  const html = renderIntakeCard(MONITOR.intake[0]);
+  assert.match(html, /data-intake="iss_061"/);
+  assert.match(html, /evaluating against policy/);
+  assert.match(html, /data-action="open-intake" data-id="iss_061"/);
+});
+
+test('renderWaitCard shows blocker + policy-language hatches', () => {
+  const html = renderWaitCard(MONITOR.waiting[0]);
+  assert.match(html, /nudge sent — awaiting customer/);
+  assert.match(html, /Request human review →/);
+  assert.match(html, /Escalate to specialist →/);
+  assert.match(html, /data-action="request-review"/);
+});
+
+test('renderPipeline has three lanes, counts, sim + drill hooks', () => {
+  const html = renderPipeline(MONITOR);
+  assert.match(html, /Intake · unprocessed/);
+  assert.match(html, /Waiting · system-managed/);
+  assert.match(html, /Resolved · automatically/);
+  assert.match(html, /id="count-intake"/);
+  assert.match(html, /data-action="sim-poll"/);
+  assert.match(html, /data-action="drill"/);
+  assert.match(html, /data-action="open-resolved" data-id="iss_004"/);
+});
+
+test('renderMonitor mounts a drawer host', () => {
+  assert.match(renderMonitor(MONITOR), /<div id="drawerHost"><\/div>/);
 });
