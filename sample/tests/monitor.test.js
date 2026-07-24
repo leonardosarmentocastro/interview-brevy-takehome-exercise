@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MONITOR } from '../data/monitor.js';
+import { renderStatStrip, renderAgentLog } from '../lib/monitor.js';
 
 test('MONITOR log newest-first with valid kinds and numeric refs', () => {
   assert.ok(MONITOR.log.length >= 5);
@@ -21,4 +22,21 @@ test('MONITOR intake items carry facts-only tables', () => {
     assert.ok(Array.isArray(it.facts.ticket) && it.facts.ticket.length > 0);
     assert.ok(Array.isArray(it.facts.customer) && it.facts.customer.length > 0);
   }
+});
+
+test('renderStatStrip shows four totals with stable ids', () => {
+  const html = renderStatStrip(MONITOR.stats);
+  assert.match(html, /id="stat-resolved"[^>]*>214</);
+  assert.match(html, /Sent for human review/);
+  assert.match(html, /id="stat-human"[^>]*>2</);
+});
+
+test('renderAgentLog is a collapsed details with latest line + policy links', () => {
+  const html = renderAgentLog(MONITOR.log);
+  assert.match(html, /<details class="log">/);
+  assert.match(html, /class="latest"/);
+  assert.match(html, /grabbed <b>iss_061<\/b>/);       // latest line, trusted HTML kept
+  assert.match(html, /data-line="77"/);                 // a ref rendered as policy link
+  assert.match(html, /lrow leak/);                      // leak entries get the class
+  assert.match(html, /7 events today/);
 });
