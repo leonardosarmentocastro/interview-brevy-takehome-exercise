@@ -1,0 +1,183 @@
+<style>
+  .dv{--bg:#0e1116;--col:#161b22;--col2:#1c2230;--line:#2a3140;--tx:#e6edf3;--tx2:#9aa7b8;--tx3:#8b97a8;
+    --ok:#3fb950;--warn:#d29922;--bad:#f85149;--info:#58a6ff;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:#0e1116;color:var(--tx);font-size:13px;padding:0;border-radius:14px;overflow:hidden;margin:-4px 0}
+  .dv h2,.dv h3,.dv h4{margin:0;font-weight:600}
+  .note-top{color:var(--tx2);font-size:12.5px;padding:14px 18px 0}
+
+  /* top bar */
+  .topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--col)}
+  .back{color:var(--tx3);font:12px var(--mono);text-decoration:none;border:1px solid var(--line);border-radius:7px;padding:5px 10px}
+  .topbar .id{font:12px var(--mono);color:var(--tx3)}
+  .topbar h2{font-size:16px}
+  .statuspill{font:10px var(--mono);letter-spacing:.4px;text-transform:uppercase;padding:2px 9px;border-radius:99px;border:1px solid rgba(88,166,255,.4);color:var(--info)}
+  .topbar .amt{margin-left:auto;font:700 18px var(--mono);color:var(--tx)}
+  .topbar .sla{font:11px var(--mono);color:var(--warn);border:1px solid rgba(210,153,34,.4);background:rgba(210,153,34,.1);border-radius:5px;padding:3px 8px}
+
+  .grid{display:grid;grid-template-columns:1fr 340px;gap:0;align-items:start}
+  .main{padding:18px;display:flex;flex-direction:column;gap:20px}
+  .rail{border-left:1px solid var(--line);background:#0b0e13;padding:18px;position:sticky;top:0;display:flex;flex-direction:column;gap:18px}
+
+  .sect>h4{font:10px var(--mono);letter-spacing:.7px;text-transform:uppercase;color:var(--tx3);margin-bottom:10px}
+
+  /* recommendation banner */
+  .rec{border:1px solid rgba(248,81,73,.32);background:rgba(248,81,73,.08);border-radius:10px;padding:13px 15px}
+  .rec .lead{font:700 13px var(--mono);letter-spacing:.3px;color:var(--bad);display:flex;align-items:center;gap:8px}
+  .rec .conf{margin-left:auto;font:10px var(--mono);color:var(--tx3);letter-spacing:.3px}
+  .rec .bc{color:var(--tx2);font-size:12.5px;margin-top:7px}
+  .rec .bc code{font:11.5px var(--mono);color:var(--tx3)}
+
+  /* policy trace */
+  .trace{display:flex;flex-direction:column;gap:8px}
+  .cl{display:flex;gap:10px;font:12px/1.5 var(--mono);color:var(--tx2);padding-left:10px;border-left:2px solid var(--line)}
+  .cl b{color:var(--tx)}
+  .cl .mk{font-weight:700;width:14px;flex:none;text-align:center}
+  .cl .st{font-size:9.5px;letter-spacing:.4px;text-transform:uppercase;opacity:.8}
+  .cl.f{border-left-color:var(--bad)} .cl.f .mk,.cl.f .st{color:var(--bad)}
+  .cl.n{border-left-color:var(--tx3)} .cl.n .mk,.cl.n .st{color:var(--tx3)}
+  .cl.m{border-left-color:var(--warn)} .cl.m .mk,.cl.m .st{color:var(--warn)}
+  .src{color:var(--tx3);font-size:10.5px}
+  .datagap{margin-top:11px;border:1px solid rgba(210,153,34,.3);background:rgba(210,153,34,.06);border-radius:8px;padding:9px 11px;font-size:11.5px;color:var(--tx2)}
+  .datagap b{color:var(--warn);font:10px var(--mono);letter-spacing:.4px}
+
+  /* context */
+  .kv{display:grid;grid-template-columns:118px 1fr;gap:5px 12px;font-size:12.5px}
+  .kv dt{color:var(--tx3)} .kv dd{margin:0;font-family:var(--mono);color:var(--tx2)}
+  .ctxgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .ctxgrid .box>h5{margin:0 0 8px;font:11px var(--mono);color:var(--tx2);letter-spacing:.3px}
+  .rel{font-size:12px;color:var(--tx3)}
+
+  /* decision rail */
+  .dpanel{border:1px solid var(--line);border-radius:10px;background:var(--col);overflow:hidden}
+  .dpanel>.h{font:10px var(--mono);letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);padding:10px 12px;border-bottom:1px solid var(--line)}
+  .dpanel .body{padding:12px}
+  .abtn{width:100%;text-align:left;font:600 12px inherit;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:var(--col2);color:var(--tx);cursor:pointer;margin-bottom:8px}
+  .abtn:hover{border-color:var(--tx3)}
+  .abtn.primary{border-color:rgba(248,81,73,.5);background:rgba(248,81,73,.1);color:var(--bad)}
+  .abtn .sub{display:block;font:10.5px var(--mono);color:var(--tx3);font-weight:400;margin-top:2px}
+  .abtn.primary .sub{color:rgba(248,81,73,.7)}
+
+  /* inline capture (the logged-decision flow) */
+  .capture{border:1px dashed rgba(248,81,73,.4);border-radius:8px;padding:11px;margin:2px 0 8px;background:rgba(248,81,73,.04)}
+  .capture .cl-h{font:10px var(--mono);letter-spacing:.4px;text-transform:uppercase;color:var(--bad);margin-bottom:9px}
+  .fld{margin-bottom:9px}
+  .fld label{display:block;font:10px var(--mono);color:var(--tx3);letter-spacing:.3px;margin-bottom:3px}
+  .fld select,.fld textarea{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--tx);border-radius:6px;padding:6px 8px;font:12px inherit}
+  .fld textarea{resize:vertical;min-height:44px}
+  .confirm{width:100%;font:600 12px inherit;padding:8px;border-radius:7px;border:1px solid rgba(248,81,73,.6);background:rgba(248,81,73,.15);color:var(--bad);cursor:pointer}
+  .logged{font-size:10.5px;color:var(--tx3);margin-top:9px;line-height:1.5;border-top:1px dashed var(--line);padding-top:9px}
+  .logged b{color:var(--tx2)}
+
+  /* activity */
+  .act{display:flex;flex-direction:column;gap:9px}
+  .ev{display:flex;gap:9px;font-size:11.5px}
+  .ev .t{font:10px var(--mono);color:var(--tx3);min-width:72px;flex:none}
+  .ev .d{color:var(--tx2)} .ev .d b{color:var(--tx)}
+  .ev .who{color:var(--tx3);font:10px var(--mono)}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}.rail{border-left:0;border-top:1px solid var(--line);position:static}.ctxgrid{grid-template-columns:1fr}}
+</style>
+
+<div class="dv">
+  <p class="note-top">Strawman detail view — what "Open ticket" opens into. This is the <b style="color:#e6edf3">investigate + act + log</b> surface. Populated with iss_003.</p>
+
+  <div class="topbar">
+    <a class="back" href="#">← Board</a>
+    <span class="id">iss_003 · txn_6103</span>
+    <h2>Dispute · item not received</h2>
+    <span class="statuspill">In review · yours</span>
+    <span class="sla">⏱ carrier ETA Jan 14</span>
+    <span class="amt">$249.00</span>
+  </div>
+
+  <div class="grid">
+    <!-- MAIN -->
+    <div class="main">
+      <div class="sect">
+        <h4>Why it's here</h4>
+        <div class="rec">
+          <div class="lead">▲ RECOMMEND ESCALATE TO SPECIALIST <span class="conf">confidence: high</span></div>
+          <div class="bc">Dispute amount <b style="color:#e6edf3">$249 exceeds the $200 escalation trigger</b> — a standard operator can't clear this. <code>policies.md:53</code></div>
+        </div>
+      </div>
+
+      <div class="sect">
+        <h4>How the agent read the policy · decision record</h4>
+        <div class="trace">
+          <div class="cl n"><span class="mk">✕</span><div><span class="src">policies.md:51</span> <span class="st">not met</span><br><b>Auto-resolve when tracking shows "delivered" AND 3+ days since.</b> Status is in_transit → not satisfied.</div></div>
+          <div class="cl f"><span class="mk">▲</span><div><span class="src">policies.md:53</span> <span class="st">fired</span><br><b>Escalate when dispute amount exceeds $200.</b> $249 → fires.</div></div>
+          <div class="cl n"><span class="mk">✕</span><div><span class="src">policies.md:54</span> <span class="st">not met</span><br><b>Escalate when lifetime spend &gt; $2000.</b> Morgan is at $312 → does not fire.</div></div>
+          <div class="cl m"><span class="mk">?</span><div><span class="src">policies.md:55</span> <span class="st">can't evaluate</span><br><b>Escalate when merchant has fulfillment history.</b> No merchant entity exists in the data.</div></div>
+        </div>
+        <div class="datagap"><b>DATA GAP —</b> rules :55 and :56 need <span class="mono">merchant history</span>, <span class="mono">delivery-confirmation events</span> and <span class="mono">comms history</span>. None exist in the dataset. The verdict holds anyway because :53 fires — but flag it: the policy references data we don't have.</div>
+      </div>
+
+      <div class="sect">
+        <h4>Context</h4>
+        <div class="ctxgrid">
+          <div class="box">
+            <h5>Customer</h5>
+            <dl class="kv">
+              <dt>Name</dt><dd>Morgan Patel · cust_217</dd>
+              <dt>Risk</dt><dd>low</dd>
+              <dt>Lifetime</dt><dd>$312.00 · 2 txns</dd>
+              <dt>Account</dt><dd>since 2024-06-01 (new)</dd>
+              <dt>Disputes</dt><dd>0 filed</dd>
+            </dl>
+          </div>
+          <div class="box">
+            <h5>Transaction &amp; shipping</h5>
+            <dl class="kv">
+              <dt>Amount</dt><dd>$249.00</dd>
+              <dt>Merchant</dt><dd>FashionForward</dd>
+              <dt>Purchased</dt><dd>2025-01-01 (12d ago)</dd>
+              <dt>Carrier</dt><dd>UPS · in_transit</dd>
+              <dt>ETA</dt><dd>2025-01-14</dd>
+              <dt>Last scan</dt><dd>Jan 12 · Chicago IL</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <div class="sect">
+        <h4>Related</h4>
+        <div class="rel">No other open tickets for this customer.</div>
+      </div>
+    </div>
+
+    <!-- RAIL -->
+    <div class="rail">
+      <div class="dpanel">
+        <div class="h">Decision · what you do</div>
+        <div class="body">
+          <button class="abtn primary">▲ Escalate to specialist<span class="sub">the recommended move</span></button>
+
+          <!-- inline capture, shown expanded to illustrate the logged flow -->
+          <div class="capture">
+            <div class="cl-h">Escalating — capture the reason</div>
+            <div class="fld"><label>Route to</label>
+              <select><option>Disputes specialist</option><option>Fraud team</option></select></div>
+            <div class="fld"><label>Reason (pre-filled from policy)</label>
+              <textarea>Amount $249 exceeds $200 escalation trigger (policies.md:53). Parcel still in transit; auto-resolve not reachable.</textarea></div>
+            <button class="confirm">Confirm escalation</button>
+          </div>
+
+          <button class="abtn">Put on hold<span class="sub">wait on carrier · until Jan 14 (ETA)</span></button>
+          <button class="abtn">Resolve manually…<span class="sub">refund or deny — captures resolution</span></button>
+
+          <div class="logged">Every action writes an audit record — <b>who, when, action, reason, policy version</b>. <span class="mono">policies.md:90</span></div>
+        </div>
+      </div>
+
+      <div class="sect">
+        <h4>Activity</h4>
+        <div class="act">
+          <div class="ev"><span class="t">Jan 13 08:15</span><div class="d"><b>Ticket created</b> from txn_6103<br><span class="who">system</span></div></div>
+          <div class="ev"><span class="t">Jan 13 08:15</span><div class="d"><b>Agent evaluated</b> → recommend escalate (:53)<br><span class="who">virtual agent</span></div></div>
+          <div class="ev"><span class="t">Jan 13 08:15</span><div class="d"><b>Sent to team backlog</b><br><span class="who">virtual agent</span></div></div>
+          <div class="ev"><span class="t">Jan 13 11:02</span><div class="d"><b>Picked up</b> — moved to In review<br><span class="who">you</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

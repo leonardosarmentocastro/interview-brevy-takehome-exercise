@@ -1,0 +1,141 @@
+<style>
+  .ob-wrap{--bg:#0e1116;--col:#161b22;--col2:#1c2230;--line:#2a3140;--tx:#e6edf3;--tx2:#9aa7b8;--tx3:#6b788a;
+    --ok:#3fb950;--warn:#d29922;--bad:#f85149;--info:#58a6ff;--purple:#bc8cff;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--tx);font-size:13px}
+  .ob-q{margin:0 0 4px}
+  .ob-sub{color:var(--tx3);font-size:13px;margin:0 0 18px}
+  .pick{border:2px solid var(--line);border-radius:12px;padding:14px 14px 16px;margin-bottom:20px;cursor:pointer;
+    background:var(--bg);transition:border-color .12s}
+  .pick:hover{border-color:var(--tx3)}
+  .pick.selected{border-color:var(--info);box-shadow:0 0 0 3px rgba(88,166,255,.18)}
+  .pick-h{display:flex;align-items:baseline;gap:10px;margin-bottom:3px}
+  .pick-h .ltr{font:700 13px var(--mono);background:var(--info);color:#04121f;border-radius:5px;padding:1px 8px}
+  .pick-h h3{margin:0;font-size:15px;color:var(--tx)}
+  .pick-desc{color:var(--tx2);font-size:12.5px;margin:0 0 12px}
+
+  /* shared context strip */
+  .strip{display:flex;gap:9px;flex-wrap:wrap;align-items:center;background:var(--col);border:1px solid var(--line);
+    border-radius:8px;padding:8px 11px;margin-bottom:12px;font:11.5px var(--mono);color:var(--tx3)}
+  .strip b{color:var(--tx2);font-weight:600}
+  .strip .robot{color:var(--purple)}
+  .strip .dot{color:var(--tx3)}
+
+  /* board */
+  .board{display:grid;gap:11px}
+  .board.four{grid-template-columns:1.15fr 1fr 1fr 1fr}
+  .zone{display:grid;gap:11px}
+  .zone.mywork{grid-template-columns:1fr 1fr 1fr;padding:10px;border:1px dashed var(--line);border-radius:10px;background:rgba(88,166,255,.03)}
+  .twozone{display:grid;grid-template-columns:1.05fr 3fr;gap:14px;align-items:start}
+  .zonehdr{grid-column:1/-1;font:11px var(--mono);letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);margin:0 2px 2px}
+  .zonehdr.team{color:var(--warn)} .zonehdr.mine{color:var(--info)}
+
+  .col{background:var(--col);border:1px solid var(--line);border-radius:9px;padding:9px;min-height:120px}
+  .col.shared{border-color:rgba(210,153,34,.4);background:rgba(210,153,34,.045)}
+  .col-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+  .col-h h4{margin:0;font-size:12.5px;color:var(--tx)}
+  .col-h .n{font:11px var(--mono);color:var(--tx3)}
+  .owner{font:9px var(--mono);letter-spacing:.5px;text-transform:uppercase;padding:1px 6px;border-radius:99px;border:1px solid}
+  .owner.team{color:var(--warn);border-color:rgba(210,153,34,.45)}
+  .owner.mine{color:var(--info);border-color:rgba(88,166,255,.4)}
+
+  .tk{background:var(--col2);border:1px solid var(--line);border-left:3px solid var(--tx3);border-radius:7px;
+    padding:8px 9px;margin-bottom:8px}
+  .tk.decline{border-left-color:var(--info)} .tk.installment{border-left-color:var(--warn)}
+  .tk.dispute{border-left-color:var(--bad)} .tk.refund{border-left-color:var(--ok)}
+  .tk .t1{display:flex;justify-content:space-between;gap:6px;align-items:baseline}
+  .tk .t1 b{font-size:12.5px;color:var(--tx)}
+  .tk .amt{font:600 12px var(--mono);color:var(--tx2)}
+  .tk .t2{font:10.5px var(--mono);color:var(--tx3);margin-top:2px}
+  .tk .chip{display:inline-block;margin-top:7px;font:9.5px var(--mono);letter-spacing:.3px;padding:2px 7px;border-radius:5px}
+  .chip.leak{background:rgba(188,140,255,.14);color:var(--purple);border:1px solid rgba(188,140,255,.35)}
+  .chip.esc{background:rgba(248,81,73,.13);color:var(--bad);border:1px solid rgba(248,81,73,.35)}
+  .chip.wait{background:rgba(210,153,34,.13);color:var(--warn);border:1px solid rgba(210,153,34,.33)}
+  .empty{color:var(--tx3);font-size:11.5px;text-align:center;padding:20px 6px;font-style:italic}
+  .resolved-sum{color:var(--tx2);font-size:11.5px;text-align:center;padding:14px 6px}
+  .resolved-sum b{color:var(--ok)}
+  @media(max-width:900px){.board.four,.zone.mywork,.twozone{grid-template-columns:1fr}}
+</style>
+
+<div class="ob-wrap">
+  <h2 class="ob-q">Operator board — which layout expresses "shared backlog + my private lanes"?</h2>
+  <p class="ob-sub">Same board state in both, drawn from the real fixtures. <b style="color:#9aa7b8">Needs review</b> is shared (any operator); <b style="color:#9aa7b8">In review / On hold / Resolved</b> are yours only. The purple chips are leaks auto-promoted because no rule could decide them.</p>
+
+  <!-- ============ OPTION A ============ -->
+  <div class="pick" data-choice="a" onclick="toggleSelect(this)">
+    <div class="pick-h"><span class="ltr">A</span><h3>One row, zone-tinted</h3></div>
+    <p class="pick-desc">A single four-column Kanban. The shared column is tinted amber and badged TEAM; your three lanes are badged MINE. Other actors (the machine, the specialist) sit in a compact context strip on top — counts, never columns.</p>
+
+    <div class="strip">
+      <span class="robot">◆ Virtual agent</span> <b>214</b> auto-resolved today
+      <span class="dot">·</span> <b>1</b> waiting <span style="color:#6b788a">(iss_005 expired card · 38h left)</span>
+      <span class="dot">·</span> <b>0</b> escalated → specialist
+      <span class="dot">·</span> <span style="margin-left:auto;color:#58a6ff">drill in ▸</span>
+    </div>
+
+    <div class="board four">
+      <div class="col shared">
+        <div class="col-h"><h4>Needs review</h4><span class="owner team">Team</span></div>
+        <div class="tk installment"><div class="t1"><b>Missed installment</b><span class="amt">$62.50</span></div>
+          <div class="t2">iss_002 · Jamie R · day 5</div><span class="chip leak">AUTO-PROMOTED · no rule (days 4–7 gap)</span></div>
+        <div class="tk decline"><div class="t1"><b>Insufficient funds</b><span class="amt">$89.99</span></div>
+          <div class="t2">iss_001 · Alex C · retries 2</div><span class="chip leak">AUTO-PROMOTED · contradiction (retry 3 vs 4)</span></div>
+      </div>
+      <div class="col">
+        <div class="col-h"><h4>In review</h4><span class="owner mine">Mine</span></div>
+        <div class="tk dispute"><div class="t1"><b>Dispute · not received</b><span class="amt">$249</span></div>
+          <div class="t2">iss_003 · Morgan P · 12d</div><span class="chip esc">RECOMMEND ESCALATE · &gt;$200</span></div>
+      </div>
+      <div class="col">
+        <div class="col-h"><h4>On hold</h4><span class="owner mine">Mine</span></div>
+        <div class="empty">Nothing parked</div>
+      </div>
+      <div class="col">
+        <div class="col-h"><h4>Resolved</h4><span class="owner mine">Mine</span></div>
+        <div class="resolved-sum"><b>3</b> resolved by you today<br><span style="color:#6b788a">+ 214 by the machine</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ OPTION B ============ -->
+  <div class="pick" data-choice="b" onclick="toggleSelect(this)">
+    <div class="pick-h"><span class="ltr">B</span><h3>Two zones: Team backlog | My work</h3></div>
+    <p class="pick-desc">A hard spatial split. Left = the shared Team backlog (its own wide column). Right = a bordered "My work" region holding your three private lanes. The ownership boundary is a wall you can see, not just a badge.</p>
+
+    <div class="strip">
+      <span class="robot">◆ Virtual agent</span> <b>214</b> auto-resolved today
+      <span class="dot">·</span> <b>1</b> waiting <span style="color:#6b788a">(iss_005 expired card · 38h left)</span>
+      <span class="dot">·</span> <b>0</b> escalated → specialist
+      <span class="dot">·</span> <span style="margin-left:auto;color:#58a6ff">drill in ▸</span>
+    </div>
+
+    <div class="twozone">
+      <div>
+        <p class="zonehdr team">Team backlog · shared</p>
+        <div class="col shared">
+          <div class="col-h"><h4>Needs review</h4><span class="n">2</span></div>
+          <div class="tk installment"><div class="t1"><b>Missed installment</b><span class="amt">$62.50</span></div>
+            <div class="t2">iss_002 · Jamie R · day 5</div><span class="chip leak">AUTO-PROMOTED · no rule (days 4–7)</span></div>
+          <div class="tk decline"><div class="t1"><b>Insufficient funds</b><span class="amt">$89.99</span></div>
+            <div class="t2">iss_001 · Alex C · retries 2</div><span class="chip leak">AUTO-PROMOTED · contradiction</span></div>
+        </div>
+      </div>
+      <div class="zone mywork">
+        <p class="zonehdr mine">My work · only me</p>
+        <div class="col">
+          <div class="col-h"><h4>In review</h4><span class="n">1</span></div>
+          <div class="tk dispute"><div class="t1"><b>Dispute</b><span class="amt">$249</span></div>
+            <div class="t2">iss_003 · Morgan P · 12d</div><span class="chip esc">RECOMMEND ESCALATE</span></div>
+        </div>
+        <div class="col">
+          <div class="col-h"><h4>On hold</h4><span class="n">0</span></div>
+          <div class="empty">Nothing parked</div>
+        </div>
+        <div class="col">
+          <div class="col-h"><h4>Resolved</h4><span class="n">3</span></div>
+          <div class="resolved-sum"><b>3</b> by you today<br><span style="color:#6b788a">+214 machine</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
