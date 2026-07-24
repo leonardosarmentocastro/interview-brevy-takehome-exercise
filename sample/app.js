@@ -1,7 +1,7 @@
 import { joinIssues, groupByColumn } from './lib/viewmodel.js';
-import { renderBoard, renderDetail } from './lib/render.js';
+import { renderBoard, renderDetail, policyLink } from './lib/render.js';
 import { DECISIONS, AGENT_SUMMARY } from './data/decisions.js';
-import { renderMonitor, renderDrill, renderIntakeDrawer, renderResolvedDrawer } from './lib/monitor.js';
+import { renderMonitor, renderDrill, renderIntakeDrawer, renderResolvedDrawer, renderIntakeCard, renderWaitCard } from './lib/monitor.js';
 import { renderPipelineNav } from './lib/nav.js';
 import { MONITOR } from './data/monitor.js';
 
@@ -130,6 +130,10 @@ app.addEventListener('click', (e) => {
     return;
   }
   if (e.target.closest('[data-action="close-drawer"]')) { closeDrawer(); return; }
+  // simulator
+  if (e.target.closest('[data-action="sim-poll"]')) { simPoll(); return; }
+  if (e.target.closest('[data-action="sim-leak"]')) { simLeak(); return; }
+  if (e.target.closest('[data-action="sim-next"]')) { simNext(); return; }
   // escape hatches (read-only monitor) — acknowledge via toast for the prototype
   const rev = e.target.closest('[data-action="request-review"]');
   if (rev) { toast(`${rev.getAttribute('data-id')} → sent for human review`); return; }
@@ -185,3 +189,75 @@ app.addEventListener('click', (e) => {
     toast('Action logged — audit record written'); return;
   }
 });
+
+const SIM = { queue: [], poolIdx: 0, autoBudget: 5, uid: 0 };
+
+function bump(id, delta) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = String((parseInt(el.textContent, 10) || 0) + delta);
+}
+function nowClock() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+function logLine(kind, html, refs) {
+  const stream = document.querySelector('.log .stream');
+  const latest = document.querySelector('.log .latest');
+  const count = document.querySelector('.log .count');
+  if (!stream) return;
+  const t = nowClock();
+  const cls = { resolved: 'res', leak: 'leak', escalated: 'esc', grab: '' }[kind] || '';
+  const refsHtml = refs && refs.length ? ' · ' + refs.map((n) => policyLink(n)).join(', ') : '';
+  stream.insertAdjacentHTML('afterbegin', `<div class="lrow ${cls}"><span class="lt">${t}</span><span class="lx">${html}${refsHtml}</span></div>`);
+  if (latest) latest.innerHTML = `<b>${t}</b> · ${html}`;
+  if (count) count.textContent = `${stream.children.length} events today`;
+}
+function makeSimTicket(base) {
+  SIM.uid += 1;
+  const id = `${base.id}_${SIM.uid}`;
+  return { ...base, id, meta: base.meta.replace(/^[^·]+·/, `${id} ·`) };
+}
+function processOne() {
+  const entry = SIM.queue.shift();
+  if (!entry) return false;
+  const card = document.querySelector(`[data-intake="${entry.id}"]`);
+  if (card) card.remove();
+  bump('count-intake', -1);
+  if (entry.dest === 'waiting') {
+    document.getElementById('wait-cards').insertAdjacentHTML('afterbegin', renderWaitCard(entry));
+    bump('count-waiting', 1); bump('stat-waiting', 1);
+    logLine('grab', `<b>${entry.id}</b> holding — ${entry.blocker.replace(/^[^ ]+ /, '')}`, entry.rule ? [entry.rule] : []);
+  } else if (entry.dest === 'resolved') {
+    bump('count-resolved', 1); bump('count-resolved-big', 1); bump('stat-resolved', 1);
+    logLine('resolved', `<b>${entry.id}</b> resolved automatically — ${entry.destNote}`, entry.rule ? [entry.rule] : []);
+  } else if (entry.dest === 'human_review') {
+    bump('stat-human', 1);
+    logLine('leak', `<b>${entry.id}</b> — policy couldn’t decide (${entry.reason}) → sent for human review`, entry.rule ? [entry.rule] : []);
+  }
+  return true;
+}
+function simEnqueue(entry) {
+  const host = document.getElementById('intake-cards');
+  if (!host) return;
+  host.insertAdjacentHTML('beforeend', renderIntakeCard(entry));
+  SIM.queue.push(entry);
+  bump('count-intake', 1);
+}
+function autoRun() {
+  if (SIM.autoBudget <= 0 || SIM.queue.length === 0) return;
+  SIM.autoBudget -= 1;
+  processOne();
+  setTimeout(autoRun, 1100);
+}
+function simPoll() {
+  for (let i = 0; i < 5; i++) {
+    const base = MONITOR.simPool[SIM.poolIdx % MONITOR.simPool.length];
+    SIM.poolIdx += 1;
+    simEnqueue(makeSimTicket(base));
+  }
+  autoRun();
+}
+function simLeak() { simEnqueue(makeSimTicket(MONITOR.simLeak)); }
+function simNext() { processOne(); }
