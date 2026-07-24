@@ -44,7 +44,7 @@ export const DECISIONS = {
     urgency: { level: 'none', label: '⏱ no clock — count disputed' },
     why: {
       face: 'no_rule',
-      lead: '◆ NO RULE — YOUR CALL',
+      lead: '◆ POLICY COULDN’T DECIDE — YOUR CALL',
       because: 'Policy contradicts itself: "3 attempts total" (:13) vs "third retry fails" (:16).',
       ref: 13,
     },
@@ -77,7 +77,7 @@ export const DECISIONS = {
     urgency: { level: 'soon', label: '⏱ escalates in 2 days (day 7)' },
     why: {
       face: 'no_rule',
-      lead: '◆ NO RULE — YOUR CALL',
+      lead: '◆ POLICY COULDN’T DECIDE — YOUR CALL',
       because: 'Auto-resolve stops at day 3 (:39); escalation starts at day 8 (:37). Day 5 is covered by no rule.',
       ref: 37,
     },

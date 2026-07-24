@@ -81,3 +81,8 @@ test('renderDetail includes header, reference link, context and rail', () => {
   assert.match(html, /Status/); // dedicated shipping status row
   assert.match(html, /Decision · what you do/);
 });
+
+test('renderAgentSummary no longer shows the Open agent view button', () => {
+  const html = renderAgentSummary({ totals: { resolved: 0, waiting: 0, backlog: 0, escalated: 0 }, categories: [] });
+  assert.doesNotMatch(html, /Open agent view/);
+});

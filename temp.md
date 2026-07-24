@@ -145,3 +145,27 @@ policies.md:86 — "when in doubt, escalate." A wait that no rule can release is
 
 ---
 
+I have a few points to put into consideration for before moving towards your proposed topic, and I'm happy to be challenged by you on them:
+
+- I think we need to have a "backlog" column in this view as well, for the reasons of, imagine a bulk of 100 tickets come. I don't think that our intelligent layer is going to solve all of them instantly, there is going to be a sort of "FIFO queue" (first in first out) for handling each case. Plus, if we don't have a backlog column, how can we make sure that tickets are correctly arriving into the platform (hipotetically speaking, let's say we are long pooling tickets from an external service. How can we visually argue that a ticket that was in system A, which is the origin, is now in the system B, which is the destination)? 
+
+- in regards to "Leaks get auto-promoted OFF this screen": instead of "no rule could resolve this", maybe we could change the verbiage to "no policy could resolve this"?
+
+- also, since this is a MVP, we need to have a mechanism to create data (tickets) for us to interact with the screen. Therefore, in this screen, it would be interested to think about a dedicated place to click and generate a few tickets, or simulate a pooling from a vendor (external service).
+
+- finally, as the system is concretely defined as a progressive pipeline (Virtual agent (machine) view  ──promote──▶  Operator view  ──escalate──▶  Specialist view), I think we should have a dedicated floating menu on the bottom of the page, with 3 buttons, one for each view, and a forward sign between then (───▶) indicating the progressive pipeline, so it demonstrate very explicitily how tickets transitates between views.
+
+---
+
+- I think the "left the agent" could behave sort like a "live logs" collapsible section. While it is collapsed, only the last logged action automatically performed by the agent appears (e.g. "grabbed ticket `iss_001` for analysis"). If it is expanded, we can check all the logged transitions which the agent was responsible for (e.g. "grabbed ticket `iss_001` for analysis" followed by "ticket `iss_001` analysis finished, resolving it", etc).  The "view in the operator" can be dropped off, because (correct me if I'm wrong), a ticket can be escalated to a operator OR a specialist. Therefore, the "view in the operator" link would imply that we would have to have the intelligence to distinguish between both and suggest a path for the user. I don't think it is worth for the MVP.
+
+- as for the "intake - unprocessed column": maybe it is worth considering adding a "view ticket" button for each entry? That would open a drawer/dialog with a sort of similar view when you click in "view ticket" in operator board. But, in this circumstance, you should only see information about the ticket, without any agent analysis and no "decision taking" column. The reason this maybe be important, is for the purposes of staging this, and be capable of reading what the generated mocked ticket is about. 
+
+- as for the "waiting - system managed" ticket's buttons, instead of "promote to team" and "escalate", we could be more explicit, such as "request human/operator review" or "escalate to specialist" (or something of this nature). The reason is, "promote to team ->" uses a different verbiage from @policies.md .  
+
+- regading the bottom navigation buttons: they are looking good, but they can be better. I think they are vertical misaligned, and can be shrinked. See image attached to a sample got from Trello. Also, in regards to the textual content, we could have something like:
+  - <pc icon> "virtual agent" + line break + "pipeline monitor"
+  - <board icon> "Operator board" + line break + "for human review"
+  - <magnifying icon> "Specialist board" + line break + "..." (need your help on this one)
+
+Let's work on these before we talk about the last column (resolved automatically)

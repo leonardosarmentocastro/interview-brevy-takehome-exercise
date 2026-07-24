@@ -46,7 +46,7 @@ export function renderAgentSummary(s) {
     </tr>`).join('');
   return `<div class="agent">
     <div class="agent-h"><span class="ico">◆</span><h3>Virtual agent — today</h3>
-      <span class="tag">machine · read-only</span><button class="agent-btn">Open agent view ▸</button></div>
+      <span class="tag">machine · read-only</span></div>
     <details class="ag">
       <summary>
         <span class="tot ok"><span class="k">Auto-resolved</span><span class="v">${t.resolved}</span></span>
