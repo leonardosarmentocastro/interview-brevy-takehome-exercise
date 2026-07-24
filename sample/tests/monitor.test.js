@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MONITOR } from '../data/monitor.js';
-import { renderStatStrip, renderAgentLog, renderIntakeCard, renderWaitCard, renderPipeline, renderMonitor, renderIntakeDrawer, renderResolvedDrawer } from '../lib/monitor.js';
+import { renderStatStrip, renderAgentLog, renderIntakeCard, renderWaitCard, renderPipeline, renderMonitor, renderIntakeDrawer, renderResolvedDrawer, renderDrill } from '../lib/monitor.js';
 
 test('MONITOR log newest-first with valid kinds and numeric refs', () => {
   assert.ok(MONITOR.log.length >= 5);
@@ -88,4 +88,15 @@ test('renderResolvedDrawer shows recommendation, timeline, audit', () => {
   assert.match(html, /EVIDENCE/);
   assert.match(html, /data-line="77"/);
   assert.match(html, /policy version:/);
+});
+
+test('renderDrill has chips, searchable rows, pattern callout, drawer host', () => {
+  const html = renderDrill(MONITOR.drill);
+  assert.match(html, /data-action="back-monitor"/);
+  assert.match(html, /class="chip on" data-cat="all"/);
+  assert.match(html, /data-action="drill-search"/);
+  assert.match(html, /data-cat="refund" data-txt="[^"]*" data-action="open-resolved" data-id="iss_004"/);
+  assert.match(html, /class="pattern"/);
+  assert.match(html, /92 of 214/);
+  assert.match(html, /<div id="drawerHost"><\/div>/);
 });

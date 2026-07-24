@@ -138,3 +138,29 @@ export function renderResolvedDrawer(a) {
       <div class="dfoot">Logged automatically — ${a.audit}</div>
     </div></div>`;
 }
+
+export function renderDrill(d) {
+  const chips = d.chips.map((c, i) =>
+    `<span class="chip ${i === 0 ? 'on' : ''}" data-cat="${esc(c.cat)}" data-action="chip">${esc(c.label)} <span class="c">${c.n}</span></span>`).join('');
+  const rows = d.rows.map((r) =>
+    `<tr data-cat="${esc(r.cat)}" data-txt="${esc(r.txt)}" data-action="open-resolved" data-id="${esc(r.analysis)}">
+      <td class="id">${esc(r.id)}</td><td class="ty">${esc(r.type)}</td><td class="amt">${esc(r.amountText)}</td>
+      <td>${esc(r.customer)}</td><td class="time">${esc(r.time)}</td><td class="rule">${policyLink(r.rule)}</td><td class="chev">›</td>
+    </tr>`).join('');
+  return `<div class="crumb"><a class="back" data-action="back-monitor">← Back to monitor</a>
+      <span class="path">Virtual agent / <b>Auto-resolved · full log</b></span></div>
+    <div class="head"><h1>Auto-resolved</h1><span class="tag">machine · read-only</span></div>
+    <p class="sub">Every ticket the agent closed today with no human involved. Searchable and filterable — click any row to audit the reasoning.</p>
+    <div class="toolbar">
+      <input class="search" id="q" placeholder="search id, customer, merchant…" data-action="drill-search">
+      <div class="chips">${chips}</div>
+    </div>
+    <table class="tbl"><thead><tr>
+      <th>Ticket</th><th>Type</th><th class="r">Amount</th><th>Customer</th><th>Resolved</th><th>Rule fired</th><th></th>
+    </tr></thead><tbody id="rows">${rows}</tbody></table>
+    <div class="norows" id="norows" style="display:none">No tickets match.</div>
+    <div class="count-note">showing <b id="shown">${d.rows.length}</b> of <b>${d.total}</b></div>
+    <div class="pattern"><span class="lb">◆ policy-quality read</span>
+      <b>${d.pattern.count} of ${d.pattern.total}</b> auto-resolves today fired on a single rule — ${policyLink(d.pattern.rule)} (refund within window, not shipped). If that clause is too permissive, it’s silently approving at volume.</div>
+    <div id="drawerHost"></div>`;
+}
