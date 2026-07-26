@@ -25,3 +25,52 @@ test('every case detail referenced by a board card id exists for the demo two', 
     assert.ok(SPECIALIST.cases[id].history.some((n) => n.end), `case ${id} has an end node`);
   }
 });
+
+import { renderUrgencyBar, renderSpecialistCard, renderSpecialistToolbar, renderSpecialistBoard } from '../lib/specialist.js';
+
+test('renderUrgencyBar shows elapsed, act-by/re-evaluate word, and breach state', () => {
+  const act = renderUrgencyBar({ fillPct: 35, kind: 'act', word: 'act-by', limit: 'window 4h', elapsed: 'in queue 20m' });
+  assert.match(act, /in queue 20m/);
+  assert.match(act, /act-by/);
+  assert.match(act, /⚠/);
+  const breach = renderUrgencyBar({ fillPct: 100, kind: 'breach', word: 'act-by', limit: 'window spent — act now', elapsed: '' });
+  assert.match(breach, /uend breach/);
+  const reval = renderUrgencyBar({ fillPct: 55, kind: 'reval', word: 're-evaluate', limit: 'carrier ETA Jan 14', elapsed: 'in queue 3h' });
+  assert.match(reval, /⟳/);
+});
+
+test('renderSpecialistCard: shared card has criticality border, provenance, Claim', () => {
+  const html = renderSpecialistCard(SPECIALIST.queue[2], {}); // iss_003 High manual
+  assert.match(html, /class="tk c-high"[^>]*data-case="iss_003"/);
+  assert.match(html, /class="crt high">High</);
+  assert.match(html, /<b>manually escalated<\/b>/);
+  assert.match(html, /data-line="53"/);
+  assert.match(html, /data-action="open-case" data-id="iss_003"/);
+  assert.match(html, /data-action="claim" data-id="iss_003"/);
+});
+
+test('renderSpecialistCard: breach card pulses + bumps; auto card reads "automatically escalated"', () => {
+  const html = renderSpecialistCard(SPECIALIST.queue[0], {}); // iss_087 breach auto
+  assert.match(html, /class="tk c-crit breach"/);
+  assert.match(html, /⤒ bumped to top/);
+  assert.match(html, /<b>automatically escalated<\/b>/);
+});
+
+test('renderSpecialistCard: resolved card shows outcome + no bar + no Claim', () => {
+  const html = renderSpecialistCard(SPECIALIST.mine.resolved[0], { resolved: true });
+  assert.match(html, /class="outcome"/);
+  assert.match(html, /fraud confirmed/);
+  assert.doesNotMatch(html, /class="ubar"/);
+  assert.doesNotMatch(html, /data-action="claim"/);
+});
+
+test('renderSpecialistBoard: two zones, grounded chips, scroll container, my-work lanes', () => {
+  const html = renderSpecialistBoard(SPECIALIST);
+  assert.match(html, /Escalation queue/);
+  assert.match(html, /Needs investigation/);
+  assert.match(html, /id="sb-queue"/);
+  assert.match(html, /data-cat="fraud"/);       // grounded filter chip
+  assert.match(html, /Investigating/);
+  assert.match(html, /On hold/);
+  assert.match(html, /3 online/);
+});
