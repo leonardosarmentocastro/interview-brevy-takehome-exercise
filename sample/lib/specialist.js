@@ -104,3 +104,77 @@ export function renderSpecialistBoard(s) {
     </div>
   </div>`;
 }
+
+// resolve REF<nn> placeholders in trusted authored HTML into real policy links
+const resolveRefs = (html) => String(html).replace(/REF(\d+)/g, (_, n) => policyLink(Number(n)));
+
+export function renderCaseHistory(nodes) {
+  const steps = nodes.map((n) => {
+    if (n.end) {
+      return `<div class="step end ${n.endCrit}"><div class="dot"></div>
+        <div class="shead"><span class="actor you">${esc(n.actor)}</span></div>
+        <div class="concl">${esc(n.concl)}</div></div>`;
+    }
+    const badge = `<span class="actor ${n.actorClass}">${esc(n.actor)}</span>`;
+    const meta = n.ref
+      ? `${badge}${policyLink(n.ref)}<span class="st">${esc(n.st)}</span>`
+      : `${badge}<span class="st">${esc(n.when || '')}</span>`;
+    const body = n.rows
+      ? n.rows.map(([p, v]) => `<div class="ln"><span class="pfx">${esc(p)}</span><span class="val">${v}</span></div>`).join('')
+      : `<div class="ln"><span class="val">${esc(n.line)}</span></div>`;
+    const note = n.note ? `<div class="note">${esc(n.note)}</div>` : '';
+    return `<div class="step ${n.fired ? 'f' : ''}"><div class="dot"></div>
+      <div class="shead">${meta}</div>${body}${note}</div>`;
+  }).join('');
+  return `<div class="tl">${steps}</div>`;
+}
+
+function railBtn(b) {
+  const cls = b.variant === 'esc' ? 'abtn rec-esc' : b.variant === 'go' ? 'abtn rec-go' : 'abtn';
+  const action = b.variant ? 'recommended' : 'other';
+  return `<button class="${cls}" data-action="${action}">${esc(b.label)}<span class="sub">${esc(b.sub)}</span></button>`;
+}
+
+function ctxTable(t) {
+  const rows = t.rows.map((r) => {
+    const [k, v, missing] = r;
+    return `<tr><td class="k">${esc(k)}</td><td class="v${missing ? ' missing' : ''}">${esc(v)}</td></tr>`;
+  }).join('');
+  return `<div><div class="grp">${esc(t.title)}</div><table class="ctable">${rows}</table></div>`;
+}
+
+export function renderCaseView(c) {
+  const provLead = c.prov.mode === 'auto' ? '↑ AUTOMATICALLY ESCALATED BY AGENT' : '↑ MANUALLY ESCALATED BY OPERATOR';
+  const staged = c.dataGap.staged ? `<div class="staged">${esc(c.dataGap.staged)}</div>` : '';
+  const resolve = c.rail.resolve.map(railBtn).join('');
+  const other = c.rail.other.map(railBtn).join('');
+  return `<div class="topbar"><a class="back" data-action="sb-back">← Board</a>
+      <span class="path">Specialist board / <b>${esc(c.id)} · ${esc(c.type)}</b></span></div>
+  <div class="grid">
+    <div class="main">
+      <div class="thead">
+        <div class="l1"><span class="ids">${esc(c.id)} · ${esc(c.txnId)}</span><span class="statuspill">${esc(c.status)}</span></div>
+        <div class="l2"><span class="type">${esc(c.type)}</span><span class="amt">${esc(c.amountText)}</span></div>
+        <div class="l1"><span class="crt ${c.crit}">${esc(c.tier)}</span></div>
+        ${renderUrgencyBar(c.bar, c.crit)}
+      </div>
+      <div class="prov-b"><div class="lead">${esc(provLead)}</div><div class="bc">${resolveRefs(c.prov.because)}</div></div>
+      <div><h4 class="sh">Case history — agent → ${c.prov.mode === 'auto' ? 'you' : 'operator → you'}</h4>${renderCaseHistory(c.history)}</div>
+      <div class="datagap"><div class="t">⚠ DATA GAP</div><div class="b">${resolveRefs(c.dataGap.html)}</div>${staged}</div>
+      <hr class="rule">
+      <div><h4 class="sh">Context</h4><div class="ctxwrap">${ctxTable(c.context.left)}${ctxTable(c.context.right)}</div></div>
+      <hr class="rule">
+      <div><h4 class="sh">Related</h4><div class="rel">${esc(c.related)}</div></div>
+    </div>
+    <div class="rail">
+      <div class="dpanel"><div class="h">Terminal decision</div><div class="body">
+        <div class="grp">Resolve</div>
+        ${resolve}
+        <div class="grp second">Other moves</div>
+        ${other}
+        <div class="logged"><b>Writes to the audit log:</b> who (Sam), when, action, reason, policy version. Every terminal action captures a reason before it commits (${policyLink(90)}).</div>
+      </div></div>
+      <div class="terminal-note">${esc(c.terminalNote)}</div>
+    </div>
+  </div>`;
+}

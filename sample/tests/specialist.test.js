@@ -74,3 +74,35 @@ test('renderSpecialistBoard: two zones, grounded chips, scroll container, my-wor
   assert.match(html, /On hold/);
   assert.match(html, /3 online/);
 });
+
+import { renderCaseHistory, renderCaseView } from '../lib/specialist.js';
+
+test('renderCaseHistory: agent badge grey by default, red when fired, end node inherits criticality', () => {
+  const html = renderCaseHistory(SPECIALIST.cases.iss_003.history);
+  assert.match(html, /class="actor ag">Agent/);        // not-fired agent, plain grey
+  assert.match(html, /class="actor ag fired">Agent/);  // fired agent
+  assert.match(html, /class="step end high"/);         // High case → amber end node
+  assert.match(html, /Operator · Alex/);
+  assert.match(html, /stuck in transit 5 days/);       // the operator note
+});
+
+test('renderCaseView (dispute): stacked history, terminal rail, no escalate, data-gap links resolved', () => {
+  const html = renderCaseView(SPECIALIST.cases.iss_003);
+  assert.match(html, /data-action="sb-back"/);
+  assert.match(html, /MANUALLY ESCALATED BY OPERATOR/i);
+  assert.match(html, /class="grid"/);
+  assert.match(html, /Refund customer \$249/);
+  assert.match(html, /data-action="recommended"/);     // reuses existing capture handler
+  assert.doesNotMatch(html, /<button[^>]*>[^<]*escalate/i); // terminal tier — no escalate action
+  assert.match(html, /data-line="55"/);                // REF55 resolved to a real policy link
+  assert.match(html, /does not return to the operator/);
+});
+
+test('renderCaseView (fraud): critical end node, staged note, missing-data rows', () => {
+  const html = renderCaseView(SPECIALIST.cases.iss_099);
+  assert.match(html, /class="step end crit"/);
+  assert.match(html, /Staged case/);
+  assert.match(html, /class="v missing">— not captured/);
+  assert.match(html, /Confirm fraud/);
+  assert.match(html, /data-line="66"/);
+});
