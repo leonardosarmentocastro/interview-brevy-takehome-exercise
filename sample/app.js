@@ -3,6 +3,7 @@ import { renderBoard, renderDetail, policyLink } from './lib/render.js';
 import { DECISIONS, AGENT_SUMMARY } from './data/decisions.js';
 import { renderMonitor, renderDrill, renderIntakeDrawer, renderResolvedDrawer, renderIntakeCard, renderWaitCard } from './lib/monitor.js';
 import { renderPipelineNav } from './lib/nav.js';
+import { renderRoleModal, renderAppHeader } from './lib/shell.js';
 import { MONITOR } from './data/monitor.js';
 import { renderSpecialistBoard, renderCaseView, renderSpecialistCardClaimed } from './lib/specialist.js';
 import { SPECIALIST } from './data/specialist.js';
@@ -28,7 +29,9 @@ async function boot() {
     ]);
     POLICY_LINES = policiesText.split('\n');
     VIEW_MODELS = joinIssues({ customers, transactions, issues }, DECISIONS, NOW);
-    showBoard();
+    document.getElementById('roleHost').innerHTML = renderRoleModal();
+    showMonitor();
+    openRoleModal();
   } catch (err) {
     app.innerHTML = `<p style="padding:24px;color:var(--bad)">${err.message}. Run <code>python3 -m http.server 8000</code> from the repo root and open <code>/sample/</code>.</p>`;
   }
@@ -36,12 +39,12 @@ async function boot() {
 
 function showBoard() {
   setSpecialistMode(false);
-  app.innerHTML = renderBoard(groupByColumn(VIEW_MODELS), AGENT_SUMMARY) + renderPipelineNav('operator');
+  app.innerHTML = renderAppHeader('operator') + renderBoard(groupByColumn(VIEW_MODELS), AGENT_SUMMARY) + renderPipelineNav('operator');
   window.scrollTo(0, 0);
 }
 function showMonitor() {
   setSpecialistMode(false);
-  app.innerHTML = renderMonitor(MONITOR) + renderPipelineNav('agent');
+  app.innerHTML = renderAppHeader('agent') + renderMonitor(MONITOR) + renderPipelineNav('agent');
   window.scrollTo(0, 0);
 }
 function showDrill() {
@@ -62,17 +65,20 @@ function setSpecialistMode(on) {
   document.body.classList.toggle('specialist-mode', on);
 }
 function showSpecialist() {
-  setSpecialistMode(true);
-  app.innerHTML = renderSpecialistBoard(SPECIALIST) + renderPipelineNav('specialist');
+  setSpecialistMode(false);
+  app.innerHTML = renderAppHeader('specialist') + renderSpecialistBoard(SPECIALIST) + renderPipelineNav('specialist');
   window.scrollTo(0, 0);
 }
 function showSpecialistCase(id) {
   const c = SPECIALIST.cases[id];
   if (!c) { toast(`${id} — case view is demoed on iss_003 & iss_099`); return; }
-  setSpecialistMode(true);
+  setSpecialistMode(false);
   app.innerHTML = renderCaseView(c) + renderPipelineNav('specialist');
   window.scrollTo(0, 0);
 }
+
+function openRoleModal() { document.getElementById('roleModal')?.classList.remove('hidden'); }
+function closeRoleModal() { document.getElementById('roleModal')?.classList.add('hidden'); }
 
 // event delegation for navigation (policy dialog + capture added in Task 7)
 app.addEventListener('click', (e) => {
@@ -126,6 +132,7 @@ function closeDrawer() {
 }
 
 app.addEventListener('click', (e) => {
+  if (e.target.closest('[data-action="switch-role"]')) { openRoleModal(); return; }
   // pipeline nav
   const nav = e.target.closest('.pstep[data-view]');
   if (nav) {
@@ -325,3 +332,7 @@ function simPoll() {
 }
 function simLeak() { simEnqueue(makeSimTicket(MONITOR.simLeak)); }
 function simNext() { processOne(); }
+
+document.getElementById('roleHost').addEventListener('click', (e) => {
+  if (e.target.closest('[data-action="pick-role"]')) { closeRoleModal(); showMonitor(); return; }
+});
