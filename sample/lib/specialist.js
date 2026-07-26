@@ -178,3 +178,5 @@ export function renderCaseView(c) {
     </div>
   </div>`;
 }
+
+export const renderSpecialistCardClaimed = (c) => renderSpecialistCard(c, { claimed: true });

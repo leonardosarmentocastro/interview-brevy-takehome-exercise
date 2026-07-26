@@ -4,6 +4,8 @@ import { DECISIONS, AGENT_SUMMARY } from './data/decisions.js';
 import { renderMonitor, renderDrill, renderIntakeDrawer, renderResolvedDrawer, renderIntakeCard, renderWaitCard } from './lib/monitor.js';
 import { renderPipelineNav } from './lib/nav.js';
 import { MONITOR } from './data/monitor.js';
+import { renderSpecialistBoard, renderCaseView, renderSpecialistCardClaimed } from './lib/specialist.js';
+import { SPECIALIST } from './data/specialist.js';
 
 const NOW = '2025-01-13T12:00:00Z';
 const app = document.getElementById('app');
@@ -33,22 +35,42 @@ async function boot() {
 }
 
 function showBoard() {
+  setSpecialistMode(false);
   app.innerHTML = renderBoard(groupByColumn(VIEW_MODELS), AGENT_SUMMARY) + renderPipelineNav('operator');
   window.scrollTo(0, 0);
 }
 function showMonitor() {
+  setSpecialistMode(false);
   app.innerHTML = renderMonitor(MONITOR) + renderPipelineNav('agent');
   window.scrollTo(0, 0);
 }
 function showDrill() {
+  setSpecialistMode(false);
   app.innerHTML = renderDrill(MONITOR.drill) + renderPipelineNav('agent');
   window.scrollTo(0, 0);
 }
 
 function showDetail(issueId) {
+  setSpecialistMode(false);
   const vm = VIEW_MODELS.find((v) => v.issue.id === issueId);
   if (!vm) return;
   app.innerHTML = renderDetail(vm);
+  window.scrollTo(0, 0);
+}
+
+function setSpecialistMode(on) {
+  document.body.classList.toggle('specialist-mode', on);
+}
+function showSpecialist() {
+  setSpecialistMode(true);
+  app.innerHTML = renderSpecialistBoard(SPECIALIST) + renderPipelineNav('specialist');
+  window.scrollTo(0, 0);
+}
+function showSpecialistCase(id) {
+  const c = SPECIALIST.cases[id];
+  if (!c) { toast(`${id} — case view is demoed on iss_003 & iss_099`); return; }
+  setSpecialistMode(true);
+  app.innerHTML = renderCaseView(c) + renderPipelineNav('specialist');
   window.scrollTo(0, 0);
 }
 
@@ -110,7 +132,20 @@ app.addEventListener('click', (e) => {
     const view = nav.getAttribute('data-view');
     if (view === 'agent') showMonitor();
     else if (view === 'operator') showBoard();
-    else toast('Specialist board — coming soon');
+    else showSpecialist();
+    return;
+  }
+  // specialist board
+  const openCase = e.target.closest('[data-action="open-case"]');
+  if (openCase) { showSpecialistCase(openCase.getAttribute('data-id')); return; }
+  if (e.target.closest('[data-action="sb-back"]')) { showSpecialist(); return; }
+  const claimBtn = e.target.closest('[data-action="claim"]');
+  if (claimBtn) { claimCase(claimBtn.getAttribute('data-id')); return; }
+  const sbChip = e.target.closest('.chip[data-action="sb-chip"]');
+  if (sbChip) {
+    sbChip.parentElement.querySelectorAll('.chip').forEach((c) => c.classList.remove('on'));
+    sbChip.classList.add('on');
+    applySpecialistFilter();
     return;
   }
   // drill navigation
@@ -151,6 +186,7 @@ app.addEventListener('click', (e) => {
 
 app.addEventListener('input', (e) => {
   if (e.target.closest('[data-action="drill-search"]')) applyDrillFilter();
+  if (e.target.closest('[data-action="sb-search"]')) applySpecialistFilter();
 });
 
 function applyDrillFilter() {
@@ -169,6 +205,34 @@ function applyDrillFilter() {
   if (shown) shown.textContent = n;
   const nr = document.getElementById('norows');
   if (nr) nr.style.display = n ? 'none' : 'block';
+}
+
+function claimCase(id) {
+  const card = document.querySelector(`#sb-queue [data-case="${id}"]`);
+  const lane = document.getElementById('sb-investigating');
+  if (!card || !lane) return;
+  card.remove();
+  const c = SPECIALIST.queue.find((x) => x.id === id);
+  if (c) { const el = document.createElement('div'); el.innerHTML = renderSpecialistCardClaimed(c); lane.insertAdjacentElement('afterbegin', el.firstElementChild); }
+  // update counts
+  const qn = document.querySelector('#sb-queue')?.children.length ?? 0;
+  const invN = document.querySelector('#sb-investigating')?.children.length ?? 0;
+  const qHead = document.querySelector('.zone.team .col-h .n');
+  const invHead = document.querySelectorAll('.zone.mine .col-h .n')[0];
+  if (qHead) qHead.textContent = String(qn);
+  if (invHead) invHead.textContent = String(invN);
+  toast(`${id} claimed — locked to you`);
+}
+function applySpecialistFilter() {
+  const chip = document.querySelector('.chip.on[data-cat]');
+  const cat = chip ? chip.getAttribute('data-cat') : 'all';
+  const q = (document.getElementById('sbq')?.value || '').toLowerCase().trim();
+  document.querySelectorAll('#sb-queue > .tk').forEach((tk) => {
+    const c = SPECIALIST.queue.find((x) => x.id === tk.getAttribute('data-case'));
+    const okCat = cat === 'all' || (c && c.cat === cat);
+    const okQ = !q || (c && (c.id + ' ' + c.meta).toLowerCase().includes(q));
+    tk.style.display = okCat && okQ ? '' : 'none';
+  });
 }
 
 function railCapture(btn) {
