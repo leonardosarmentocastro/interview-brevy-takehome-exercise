@@ -169,3 +169,36 @@ I have a few points to put into consideration for before moving towards your pro
   - <magnifying icon> "Specialist board" + line break + "..." (need your help on this one)
 
 Let's work on these before we talk about the last column (resolved automatically)
+
+---
+
+TODO
+
+- add a "role selection" screen that is displayed once we first arrive the MVP
+    - this screen is going to display the available roles in the system, from top to bottom:
+        - admin (has administrative powers over specialists, operators and the system)
+        - specialist / specialist manager (has administrative powers against specialists and operators)
+        - operator / operator manager (has administrative powers against operators)
+    - only admin is going to be available for now, but we want to demonstrate that there would be roles
+
+- fix the visual discrepancy between 3 screens 
+    - virtual agent and operator boards looks similar in viewport space usage, but the specialist board is fullscreen
+    - virtual agent view is the only one that has a page title, letting the user know where we are (apart from the bottom nav highlight). Add page title to both operator and specialist boards 
+
+- operator board
+    - the ticket "escalate to specialist" is in green, when it should have been in red to match the color used to signal urgency/criticality
+    - change the "claim" button to be blue instead of gray (just as in specialist board)
+
+- add a readme.md/context.md/agents.md to the project
+    - give business context to agents
+    - give instructions to agents on how to develop (tdd, ddd, etc)
+
+- prepare the monorepo to work with nodejs/express + react apps (backend and frontend)
+    - move all the sample screens to live inside the frontend using react 
+    - leave the backend ready to receive express implementation
+- make this MVP usable/interactable completely by the frontend, meaning that, tickets are orchestrated through a state machine in the frontend (using redux, jotai, zustand, react context + reducer, whatever is simplest)
+
+- brainstorm about 
+    - to make the virtual agent analyse the tickets against the `.md` file (instead of making a matrix of rules/constraints to validate against)
+    - backend with queues (for awaiting processes), store logging for tickets, etc 
+
