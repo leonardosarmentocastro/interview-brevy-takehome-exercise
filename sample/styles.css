@@ -402,3 +402,51 @@ body.specialist-mode .rail{overflow-y:auto;min-height:0;padding-bottom:90px}
 .ctable td.v.missing{color:var(--tx3);font-style:italic}
 .grp{font:9.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--tx3);margin:2px 0 9px}
 .terminal-note{font:10.5px var(--mono);color:var(--tx3);line-height:1.5;text-align:center}
+
+/* ===== shared app header (all three boards) ===== */
+.appbar{display:flex;align-items:center;gap:14px;padding:10px 14px;background:var(--col);
+  border:1px solid var(--line);border-radius:10px;margin-bottom:16px}
+.appbar .ttl{display:flex;flex-direction:column;min-width:0}
+.appbar .eyebrow{font:9.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--tx3)}
+.appbar .ttl h2{margin:1px 0 0;font-size:15px;font-weight:700}
+.appbar .spacer{flex:1}
+.idchip{display:flex;align-items:center;gap:9px;padding:5px 10px 5px 6px;border:1px solid var(--line);
+  border-radius:99px;background:var(--col2);cursor:pointer;transition:.12s;font:inherit;color:inherit}
+.idchip:hover{border-color:rgba(88,166,255,.5);background:rgba(88,166,255,.08)}
+.idchip .ava{width:30px;height:30px;border-radius:99px;display:grid;place-items:center;flex:0 0 30px;
+  background:rgba(88,166,255,.16);border:1px solid rgba(88,166,255,.5);color:var(--info);
+  font:700 10px var(--mono);letter-spacing:.5px}
+.idchip .who{display:flex;flex-direction:column;line-height:1.15;text-align:left}
+.idchip .who .r{font-size:12.5px;font-weight:600}
+.idchip .who .h{font:9px var(--mono);letter-spacing:.3px;text-transform:uppercase;color:var(--tx3)}
+.idchip .car{color:var(--tx3);font-size:11px}
+
+/* ===== role-selection modal ===== */
+.overlay{position:fixed;inset:0;display:grid;place-items:center;background:rgba(4,6,9,.55);
+  backdrop-filter:blur(3px);z-index:1200;transition:opacity .18s}
+.overlay.hidden{opacity:0;pointer-events:none}
+.overlay .modal{width:410px;max-width:92%;background:var(--col);border:1px solid var(--line);border-radius:14px;
+  padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.modal .mh{display:flex;align-items:center;gap:9px;margin-bottom:3px}
+.modal .mh .dot{width:7px;height:7px;border-radius:99px;background:var(--ok)}
+.modal .mh .brand{font:700 11px var(--mono);letter-spacing:.4px;color:var(--tx2)}
+.modal .mtitle{font-size:16px;font-weight:700;margin:8px 0 2px}
+.modal .mnote{color:var(--tx3);font-size:12px;margin:0 0 15px}
+.modal .mnote code{font-family:var(--mono);color:var(--warn)}
+.modal .role{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:10px;
+  padding:12px 13px;margin-bottom:9px;background:var(--col2);transition:.12s}
+.modal .role .rava{width:34px;height:34px;flex:0 0 34px;border-radius:9px;display:grid;place-items:center;
+  font:700 12px var(--mono);background:#222a38;border:1px solid var(--line);color:var(--tx3)}
+.modal .role .rbody{flex:1;min-width:0}
+.modal .role .rname{font-weight:600;font-size:13.5px}
+.modal .role .rname .mgr{color:var(--tx3);font-weight:400}
+.modal .role .rscope{color:var(--tx3);font-size:12px;margin-top:3px}
+.modal .role .rtag{font:9px var(--mono);letter-spacing:.4px;text-transform:uppercase;border:1px solid rgba(210,153,34,.4);
+  border-radius:99px;padding:1px 7px;color:var(--warn);white-space:nowrap}
+.modal .role .cont{font:700 11px var(--mono);color:var(--info);white-space:nowrap}
+.modal .role.admin{border-color:rgba(88,166,255,.5);background:rgba(88,166,255,.07);cursor:pointer}
+.modal .role.admin:hover{background:rgba(88,166,255,.13)}
+.modal .role.admin .rava{background:rgba(88,166,255,.15);border-color:rgba(88,166,255,.5);color:var(--info)}
+.modal .role.off{opacity:.5;cursor:not-allowed;filter:grayscale(.3)}
+.modal .mfoot{font:11px var(--mono);color:var(--tx3);text-align:center;margin-top:11px}
+.modal .mfoot b{color:var(--info)}
