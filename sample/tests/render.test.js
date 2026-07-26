@@ -86,3 +86,22 @@ test('renderAgentSummary no longer shows the Open agent view button', () => {
   const html = renderAgentSummary({ totals: { resolved: 0, waiting: 0, backlog: 0, escalated: 0 }, categories: [] });
   assert.doesNotMatch(html, /Open agent view/);
 });
+
+test('card fallback pull button reads "Claim", not "Review"', () => {
+  // a decision with no recommended action falls back to the pull button
+  const vm = {
+    display: { id: 'iss_x', typeLabel: 'Dispute', amountText: '$10.00', customerName: 'A', merchant: 'M', ageDays: 1, riskScore: 'low', isHighValue: false },
+    decision: { urgency: { level: 'none', label: '⏱ no clock' }, why: { face: 'no_rule', lead: 'X' }, actions: { recommended: null } },
+  };
+  const html = renderCard(vm);
+  assert.match(html, /data-action="open">Claim</);
+  assert.doesNotMatch(html, />Review</);
+});
+
+test('team backlog header shows the 3-online presence indicator', () => {
+  const html = renderBoard(
+    { needs_review: [], in_review: [], on_hold: [], resolved: [] },
+    { totals: { resolved: 0, waiting: 0, backlog: 0, escalated: 0 }, categories: [] },
+  );
+  assert.match(html, /3 online/);
+});

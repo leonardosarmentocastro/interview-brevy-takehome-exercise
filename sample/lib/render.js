@@ -20,7 +20,7 @@ function whyChip(why) {
 function cardAction(decision) {
   const rec = decision.actions.recommended;
   if (rec) return `<button class="cbtn go" data-action="recommended">${esc(rec.label.replace(/^[▲✓◆]\s*/, ''))}</button>`;
-  return '<button class="cbtn" data-action="open">Review</button>';
+  return '<button class="cbtn" data-action="open">Claim</button>';
 }
 
 export function renderCard(vm) {
@@ -79,7 +79,7 @@ export function renderBoard(grouped, agentSummary) {
   return `${renderAgentSummary(agentSummary)}
   <div class="twozone">
     <div class="zone team">
-      <div class="zhead"><span class="lbl">▤ Team backlog</span><span class="exp">Unassigned — anyone can pick these up.</span></div>
+      <div class="zhead"><span class="lbl">▤ Team backlog</span><span class="exp">Unassigned — anyone can pick these up · <span class="online">3 online</span></span></div>
       ${column('Needs review', grouped.needs_review.length, 'Pick one; it moves to your work and leaves others\' view.', grouped.needs_review, { shared: true, empty: 'Backlog clear' })}
     </div>
     <div class="zone mine">
