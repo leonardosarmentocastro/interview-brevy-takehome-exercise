@@ -1,11 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
+import { useSetAtom } from "jotai";
 import { useIssue } from "@/modules/operators/hooks/use-issue";
 import { DecisionRail } from "@/modules/operators/components/DecisionRail";
 import { Timeline } from "@/modules/operators/components/Timeline";
 import { PolicyLink } from "@/shared/policies/components/PolicyLink";
+import { resetDecisionAtom } from "@/modules/operators/data/atoms/capture";
 import { formatMoney } from "@/modules/operators/utils/format-money";
 
 const REC_BOX: Record<string, string> = {
@@ -53,6 +55,12 @@ const SectionHeading = ({ children }: { children: ReactNode }) => (
 
 export function IssueDetailPage({ issueId }: { issueId: string }) {
   const { data: vm, isLoading } = useIssue(issueId);
+  const resetDecision = useSetAtom(resetDecisionAtom);
+
+  // A committed decision is per-ticket: clear it whenever we open a new one.
+  useEffect(() => {
+    resetDecision();
+  }, [issueId, resetDecision]);
 
   if (isLoading || !vm) {
     return <main data-testid="screen-issue-detail">Loading…</main>;

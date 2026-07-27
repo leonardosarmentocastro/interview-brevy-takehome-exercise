@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createStore, Provider } from "jotai";
 import { DecisionRail } from "@/modules/operators/components/DecisionRail";
 
 const decision = {
@@ -21,9 +22,18 @@ const decision = {
   activity: [{ t: "Jan 13 03:22", text: "Ticket created", who: "system" }],
 } as never;
 
+function renderRail() {
+  const store = createStore();
+  return render(
+    <Provider store={store}>
+      <DecisionRail decision={decision} />
+    </Provider>,
+  );
+}
+
 describe("DecisionRail", () => {
   it("does not repeat the policy verdict already shown in the main column", () => {
-    render(<DecisionRail decision={decision} />);
+    renderRail();
     expect(
       screen.queryByText(/POLICY COULDN'T DECIDE/i),
     ).not.toBeInTheDocument();
@@ -31,18 +41,16 @@ describe("DecisionRail", () => {
   });
 
   it("orders escalate-to-specialist last", () => {
-    render(<DecisionRail decision={decision} />);
+    renderRail();
     const labels = screen
       .getAllByRole("button")
       .map((b) => b.textContent ?? "");
-    const actionLabels = labels.filter((l) =>
-      /retry|escalate|hold/i.test(l),
-    );
+    const actionLabels = labels.filter((l) => /retry|escalate|hold/i.test(l));
     expect(actionLabels.at(-1)).toMatch(/Escalate to specialist/);
   });
 
   it("expands the clicked option inline with a reason field", async () => {
-    render(<DecisionRail decision={decision} />);
+    renderRail();
     await userEvent.click(
       screen.getByRole("button", { name: /Schedule 3rd retry/ }),
     );
@@ -50,5 +58,32 @@ describe("DecisionRail", () => {
       screen.getByText(/Schedule 3rd retry — confirm & log/i),
     ).toBeInTheDocument();
     expect(screen.getByRole("textbox")).toBeInTheDocument();
+  });
+
+  it("confirming a move logs it, shows a dialog, and locks the panel read-only", async () => {
+    renderRail();
+    await userEvent.click(
+      screen.getByRole("button", { name: /Schedule 3rd retry/ }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^Confirm$/ }));
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText(/moving ticket to resolved/i)).toBeInTheDocument();
+    expect(screen.getByText(/Decision taken/i)).toBeInTheDocument();
+    // Options are gone — the panel is read-only now.
+    expect(
+      screen.queryByRole("button", { name: /Escalate to specialist/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("uses the escalation-specific message for the escalate action", async () => {
+    renderRail();
+    await userEvent.click(
+      screen.getByRole("button", { name: /Escalate to specialist/ }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^Confirm$/ }));
+    expect(
+      screen.getByText(/escalating to specialist's team board/i),
+    ).toBeInTheDocument();
   });
 });

@@ -2,8 +2,13 @@
 
 import { useAtomValue, useSetAtom } from "jotai";
 import type { Decision, DecisionAction } from "@/modules/operators/types";
-import { captureAtom, openCaptureAtom } from "@/modules/operators/data/atoms/capture";
+import {
+  captureAtom,
+  decisionAtom,
+  openCaptureAtom,
+} from "@/modules/operators/data/atoms/capture";
 import { CapturePanel } from "./CapturePanel";
+import { DecisionDialog } from "./DecisionDialog";
 
 const ABTN_BASE =
   "block w-full text-left mb-[9px] rounded-lg border px-3 py-2.5 font-semibold text-[13px] text-tx bg-col2 border-line cursor-pointer transition-colors hover:border-tx3";
@@ -24,12 +29,16 @@ function subClasses(action: DecisionAction): string {
   return "text-tx3";
 }
 
+const GRP =
+  "mb-[9px] mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.5px] text-tx3";
+
 export function DecisionRail({ decision }: { decision: Decision }) {
   const rec = decision.actions?.recommended;
   const others = decision.actions?.others ?? [];
   const activity = decision.activity ?? [];
   const openCapture = useSetAtom(openCaptureAtom);
   const capture = useAtomValue(captureAtom);
+  const taken = useAtomValue(decisionAtom);
 
   // Escalate-to-specialist (the danger move) always reads last in the list.
   const orderedOthers = [...others].sort(
@@ -41,7 +50,7 @@ export function DecisionRail({ decision }: { decision: Decision }) {
       <button
         type="button"
         className={`${ABTN_BASE} ${variantClasses(action)}`}
-        onClick={() => openCapture(action.label)}
+        onClick={() => openCapture(action)}
       >
         {action.label}
         {action.sub ? (
@@ -52,7 +61,7 @@ export function DecisionRail({ decision }: { decision: Decision }) {
           </span>
         ) : null}
       </button>
-      {capture?.actionLabel === action.label ? <CapturePanel /> : null}
+      {capture?.label === action.label ? <CapturePanel /> : null}
     </div>
   );
 
@@ -63,27 +72,48 @@ export function DecisionRail({ decision }: { decision: Decision }) {
           Decision · what you do
         </div>
         <div className="p-[13px]">
-          {rec ? (
+          {taken ? (
             <>
-              <div className="mb-[9px] mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.5px] text-tx3">
-                Recommended
+              <div className={GRP}>Decision taken</div>
+              <div
+                className={`rounded-lg border px-3 py-2.5 ${variantClasses(taken.action) || "border-line bg-col2 text-tx"}`}
+              >
+                <div className="font-semibold text-[13px]">
+                  ✓ {taken.action.label}
+                </div>
+                <div className="mt-1.5 text-[12px] leading-[1.45] text-tx2">
+                  {taken.reason}
+                </div>
               </div>
-              {renderAction(rec)}
+              <div className="mt-2.5 border-t border-dashed border-line pt-2.5 text-[11px] leading-[1.5] text-tx3">
+                Logged — this panel is now read-only.
+              </div>
             </>
           ) : (
-            <div className="mb-[9px] mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.5px] text-tx3">
-              No recommended action — your call
-            </div>
+            <>
+              {rec ? (
+                <>
+                  <div className={GRP}>Recommended</div>
+                  {renderAction(rec)}
+                </>
+              ) : (
+                <div className={GRP}>No recommended action — your call</div>
+              )}
+              <div
+                className={`${GRP} mt-3.5 border-t border-line pt-3`}
+              >
+                Other legal moves
+              </div>
+              {orderedOthers.map(renderAction)}
+              <div className="mt-2.5 border-t border-dashed border-line pt-2.5 text-[11px] leading-[1.5] text-tx3">
+                Every action writes an audit record —{" "}
+                <b className="text-tx2">
+                  who, when, action, reason, policy version
+                </b>
+                . policies.md:90
+              </div>
+            </>
           )}
-          <div className="mb-[9px] mt-3.5 border-t border-line pt-3 font-mono text-[9.5px] uppercase tracking-[0.5px] text-tx3">
-            Other legal moves
-          </div>
-          {orderedOthers.map(renderAction)}
-          <div className="mt-2.5 border-t border-dashed border-line pt-2.5 text-[11px] leading-[1.5] text-tx3">
-            Every action writes an audit record —{" "}
-            <b className="text-tx2">who, when, action, reason, policy version</b>.
-            policies.md:90
-          </div>
         </div>
       </div>
 
@@ -106,6 +136,8 @@ export function DecisionRail({ decision }: { decision: Decision }) {
           ))}
         </div>
       </div>
+
+      <DecisionDialog />
     </div>
   );
 }

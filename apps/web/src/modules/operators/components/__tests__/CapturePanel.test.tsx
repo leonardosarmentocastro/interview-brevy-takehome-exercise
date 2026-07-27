@@ -13,7 +13,9 @@ function Harness() {
   const log = useAtomValue(captureLogAtom);
   return (
     <>
-      <button onClick={() => open("Escalate to specialist")}>open</button>
+      <button onClick={() => open({ label: "Escalate to specialist", danger: true })}>
+        open
+      </button>
       <span data-testid="n">{log.length}</span>
       <CapturePanel />
     </>
