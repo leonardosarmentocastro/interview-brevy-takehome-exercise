@@ -5,7 +5,7 @@ import { useAtomValue, useSetAtom } from "jotai";
 import type { DecisionAction } from "@/modules/operators/types";
 import {
   captureAtom,
-  confirmCaptureAtom,
+  requestConfirmAtom,
 } from "@/modules/operators/data/atoms/capture";
 
 const DEFAULT_REASON = "Confirmed by operator per policy.";
@@ -38,7 +38,7 @@ function themeFor(action: DecisionAction): Theme {
 
 export function CapturePanel() {
   const action = useAtomValue(captureAtom);
-  const confirm = useSetAtom(confirmCaptureAtom);
+  const requestConfirm = useSetAtom(requestConfirmAtom);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   if (!action) return null;
@@ -71,7 +71,9 @@ export function CapturePanel() {
       <div className="mt-0.5 flex justify-end">
         <button
           type="button"
-          onClick={() => confirm(textareaRef.current?.value ?? DEFAULT_REASON)}
+          onClick={() =>
+            requestConfirm(textareaRef.current?.value ?? DEFAULT_REASON)
+          }
           className={`cursor-pointer rounded-[7px] border px-4 py-[9px] text-[12.5px] font-semibold ${theme.btn}`}
         >
           Confirm

@@ -60,20 +60,39 @@ describe("DecisionRail", () => {
     expect(screen.getByRole("textbox")).toBeInTheDocument();
   });
 
-  it("confirming a move logs it, shows a dialog, and locks the panel read-only", async () => {
+  it("takes two steps: inline confirm opens a dialog, dialog confirm locks read-only", async () => {
+    renderRail();
+    await userEvent.click(
+      screen.getByRole("button", { name: /Schedule 3rd retry/ }),
+    );
+    // Step 1 — inline confirm only opens the dialog; panel not yet locked.
+    await userEvent.click(screen.getByRole("button", { name: /^Confirm$/ }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText(/moving ticket to resolved/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Decision taken/i)).not.toBeInTheDocument();
+
+    // Step 2 — dialog confirm commits and locks the panel read-only.
+    await userEvent.click(
+      screen.getByRole("button", { name: /Confirm decision/ }),
+    );
+    expect(screen.getByText(/Decision taken/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Escalate to specialist/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("cancelling the dialog keeps the panel interactive", async () => {
     renderRail();
     await userEvent.click(
       screen.getByRole("button", { name: /Schedule 3rd retry/ }),
     );
     await userEvent.click(screen.getByRole("button", { name: /^Confirm$/ }));
-
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText(/moving ticket to resolved/i)).toBeInTheDocument();
-    expect(screen.getByText(/Decision taken/i)).toBeInTheDocument();
-    // Options are gone — the panel is read-only now.
+    await userEvent.click(screen.getByRole("button", { name: /Cancel/ }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Decision taken/i)).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /Escalate to specialist/ }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: /Escalate to specialist/ }),
+    ).toBeInTheDocument();
   });
 
   it("uses the escalation-specific message for the escalate action", async () => {

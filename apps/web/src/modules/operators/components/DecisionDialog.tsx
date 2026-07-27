@@ -1,13 +1,33 @@
 "use client";
 
 import { useAtomValue, useSetAtom } from "jotai";
-import { closeDialogAtom, dialogAtom } from "@/modules/operators/data/atoms/capture";
+import {
+  cancelConfirmAtom,
+  commitDecisionAtom,
+  confirmMessage,
+  pendingAtom,
+} from "@/modules/operators/data/atoms/capture";
+
+const PRIMARY_BTN: Record<"go" | "esc" | "neutral", string> = {
+  go: "border-[rgba(63,185,80,0.6)] bg-[rgba(63,185,80,0.15)] text-ok",
+  esc: "border-[rgba(248,81,73,0.6)] bg-[rgba(248,81,73,0.15)] text-bad",
+  neutral: "border-line bg-col2 text-tx hover:border-tx3",
+};
 
 export function DecisionDialog() {
-  const message = useAtomValue(dialogAtom);
-  const close = useSetAtom(closeDialogAtom);
+  const pending = useAtomValue(pendingAtom);
+  const commit = useSetAtom(commitDecisionAtom);
+  const cancel = useSetAtom(cancelConfirmAtom);
 
-  if (!message) return null;
+  if (!pending) return null;
+
+  const action = pending.action;
+  const tone =
+    action.danger || action.variant === "esc"
+      ? "esc"
+      : action.variant === "go"
+        ? "go"
+        : "neutral";
 
   return (
     <div
@@ -18,21 +38,29 @@ export function DecisionDialog() {
       <div
         className="absolute inset-0 bg-black/60"
         data-testid="dialog-backdrop"
-        onClick={close}
+        onClick={() => cancel()}
       />
-      <div className="relative w-[min(440px,92vw)] rounded-xl border border-line bg-col p-5 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
-        <div className="mb-3 flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.5px] text-ok">
-          <span className="h-1.5 w-1.5 rounded-full bg-ok" />
-          Decision logged
+      <div className="relative w-[min(460px,92vw)] rounded-xl border border-line bg-col p-5 shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+        <div className="mb-3 font-mono text-[10.5px] uppercase tracking-[0.5px] text-tx3">
+          Confirm decision
         </div>
-        <p className="text-[13.5px] leading-[1.55] text-tx2">{message}</p>
-        <div className="mt-4 flex justify-end">
+        <p className="text-[13.5px] leading-[1.55] text-tx2">
+          {confirmMessage(action)}
+        </p>
+        <div className="mt-5 flex justify-end gap-2.5">
           <button
             type="button"
-            onClick={close}
-            className="cursor-pointer rounded-[7px] border border-line bg-col2 px-4 py-2 text-[12.5px] font-semibold text-tx2 transition-colors hover:border-tx3 hover:text-tx"
+            onClick={() => cancel()}
+            className="cursor-pointer rounded-[7px] border border-line bg-transparent px-4 py-2 text-[12.5px] font-semibold text-tx3 transition-colors hover:border-tx3 hover:text-tx2"
           >
-            Got it
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => commit()}
+            className={`cursor-pointer rounded-[7px] border px-4 py-2 text-[12.5px] font-semibold transition-colors ${PRIMARY_BTN[tone]}`}
+          >
+            Confirm decision
           </button>
         </div>
       </div>
