@@ -110,7 +110,7 @@
   font-weight: 700;
 }
 .appbar .hdesc {
-  margin: 6px 0 0;
+  margin: 0;
   font-size: 13px;
   color: var(--color-tx2);
   line-height: 1.5;

@@ -48,4 +48,11 @@ describe("OperatorBoardPage", () => {
       screen.queryByRole("heading", { name: /Virtual agent — today/i }),
     ).not.toBeInTheDocument();
   });
+
+  it("shows a live updates indicator below the appbar", () => {
+    render(<OperatorBoardPage />);
+    expect(
+      screen.getByText(/live · updates as tickets flow/i),
+    ).toBeInTheDocument();
+  });
 });

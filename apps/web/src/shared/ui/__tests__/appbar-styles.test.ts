@@ -10,4 +10,10 @@ describe("appbar styles", () => {
     expect(block).not.toMatch(/background:/);
     expect(block).not.toMatch(/border:/);
   });
+
+  it("gives .appbar .hdesc no top margin", () => {
+    const block = css.match(/\.appbar \.hdesc\s*\{[^}]+\}/)?.[0] ?? "";
+    expect(block).toMatch(/margin:\s*0(?:\s*;|\s)/);
+    expect(block).not.toMatch(/margin:\s*6px/);
+  });
 });

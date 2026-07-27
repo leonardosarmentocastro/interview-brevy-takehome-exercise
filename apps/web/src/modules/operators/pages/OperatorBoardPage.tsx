@@ -15,6 +15,12 @@ export function OperatorBoardPage() {
 
   return (
     <main data-testid="screen-operator">
+      <div className="livebar">
+        <span className="live">
+          <span className="dot" />
+          live · updates as tickets flow
+        </span>
+      </div>
       <div className="twozone">
         <div className="zone team">
           <div className="zhead">

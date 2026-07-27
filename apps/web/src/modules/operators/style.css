@@ -1,5 +1,30 @@
 /* Operator board + detail — ported from sample/styles.css (var(--x) → var(--color-x)) */
 
+@keyframes live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.livebar {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 10px;
+}
+.livebar .live {
+  font: 11px var(--font-mono);
+  color: var(--color-tx3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.livebar .live .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--color-ok);
+  animation: live 1.6s infinite;
+}
+
 .agent {
   background: var(--color-col);
   border: 1px solid var(--color-line);
