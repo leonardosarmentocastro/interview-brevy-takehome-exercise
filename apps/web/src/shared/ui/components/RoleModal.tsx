@@ -15,14 +15,18 @@ export function RoleModal({ open, onPick }: { open: boolean; onPick: (role: "adm
         <div className="mtitle">Who&apos;s operating the console?</div>
         <p className="mnote">Authentication isn&apos;t wired in this MVP — <code>pick a role to continue</code>.</p>
         {ROLES.map((r) => (
-          <div key={r.name} className={r.enabled ? "role admin" : "role off"}>
+          <div
+            key={r.name}
+            className={r.enabled ? "role admin" : "role off"}
+            onClick={r.enabled ? () => onPick("admin") : undefined}
+          >
             <div className="rava">{r.avatar}</div>
             <div className="rbody">
               <div className="rname">{r.name}<span className="mgr">{r.mgr}</span></div>
               <div className="rscope">{r.scope}</div>
             </div>
             {r.enabled
-              ? <button className="cont" onClick={() => onPick("admin")}>Continue&nbsp;→</button>
+              ? <span className="cont">Continue&nbsp;→</span>
               : <span className="rtag">requires auth</span>}
           </div>
         ))}
