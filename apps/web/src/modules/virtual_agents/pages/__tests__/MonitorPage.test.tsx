@@ -29,7 +29,7 @@ vi.mock("@/modules/virtual_agents/hooks/use-monitor", () => ({
 
 describe("MonitorPage", () => {
   it("renders the three pipeline columns and a drill link", () => {
-    render(<MonitorPage />);
+    render(<MonitorPage autoRun={false} />);
     expect(screen.getByRole("heading", { name: /intake/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /waiting/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /resolved/i })).toBeInTheDocument();
