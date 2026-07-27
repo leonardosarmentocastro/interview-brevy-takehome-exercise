@@ -34,6 +34,12 @@ describe("error-handler middleware", () => {
     expect(res.status).toBe(404);
   });
 
+  it("maps ConflictError to 409", async () => {
+    const res = await fetch(`${base}/test/middlewares/conflict`);
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("resource already exists");
+  });
+
   it("maps unexpected errors to 500", async () => {
     const res = await fetch(`${base}/test/middlewares/boom`);
     expect(res.status).toBe(500);

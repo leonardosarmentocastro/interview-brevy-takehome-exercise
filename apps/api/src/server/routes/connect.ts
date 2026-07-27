@@ -1,6 +1,6 @@
 import { Router, type Express } from "express";
 import { z } from "zod";
-import { NotFoundError } from "@/db/data/errors";
+import { ConflictError, NotFoundError } from "@/db/data/errors";
 import { healthRouter } from "@/modules/health/routes";
 
 /**
@@ -26,6 +26,9 @@ export const connectRoutes = (app: Express): void => {
     });
     testMiddlewaresRouter.get("/not-found", () => {
       throw new NotFoundError("resource not found");
+    });
+    testMiddlewaresRouter.get("/conflict", () => {
+      throw new ConflictError("resource already exists");
     });
     testMiddlewaresRouter.get("/boom", () => {
       throw new Error("unexpected failure");
