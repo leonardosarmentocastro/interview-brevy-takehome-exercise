@@ -77,9 +77,6 @@
   align-items: flex-start;
   gap: 14px;
   padding: 10px 14px;
-  background: var(--color-col);
-  border: 1px solid var(--color-line);
-  border-radius: 10px;
   margin-bottom: 16px;
 }
 .appbar .ttl {
