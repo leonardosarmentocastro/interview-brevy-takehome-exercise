@@ -1,17 +1,18 @@
 import type { TraceNode } from "@/modules/operators/types";
 import { TraceRow } from "./TraceRow";
-import "../style.css";
 
 export function Timeline({ trace }: { trace?: TraceNode[] }) {
   const nodes = trace ?? [];
   return (
-    <div className="tl">
+    <div className="ml-1.5">
       {nodes.map((node) => (
         <TraceRow key={`${node.src}-${node.status}-${node.rule}`} node={node} />
       ))}
-      <div className="step end">
-        <div className="dot" />
-        <div className="concl">→ conclusion below</div>
+      <div className="relative border-l-2 border-transparent pl-[22px]">
+        <div className="absolute left-[-9px] top-0.5 h-4 w-4 rounded-full border-2 border-ok bg-ok" />
+        <div className="text-[14px] font-semibold text-ok">
+          → conclusion below
+        </div>
       </div>
     </div>
   );
