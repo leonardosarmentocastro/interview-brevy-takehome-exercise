@@ -1,5 +1,6 @@
 import { atom } from "jotai";
 import type {
+  IntakeItem,
   LogEntry,
   MonitorSnapshot,
   MonitorStats,
@@ -8,7 +9,9 @@ import type {
   WaitItem,
 } from "@/modules/virtual_agents/types";
 
-export const intakeQueueAtom = atom<SimTicket[]>([]);
+export type IntakeQueueItem = IntakeItem | SimTicket;
+
+export const intakeQueueAtom = atom<IntakeQueueItem[]>([]);
 export const waitingAtom = atom<WaitItem[]>([]);
 export const resolvedCountAtom = atom(0);
 export const logAtom = atom<LogEntry[]>([]);
@@ -19,6 +22,7 @@ export const statsAtom = atom<MonitorStats>({
   humanReview: 0,
   escalated: 0,
 });
+export const simSeededAtom = atom(false);
 
 const simPoolAtom = atom<SimPoolTicket[]>([]);
 const simLeakAtom = atom<SimPoolTicket | null>(null);
@@ -41,7 +45,7 @@ function makeSimTicket(base: SimPoolTicket, uid: number): SimTicket {
 }
 
 export const simInitAtom = atom(null, (_get, set, snapshot: MonitorSnapshot) => {
-  set(intakeQueueAtom, [...(snapshot.intake as SimTicket[])]);
+  set(intakeQueueAtom, [...snapshot.intake]);
   set(waitingAtom, [...snapshot.waiting]);
   set(resolvedCountAtom, snapshot.resolved.count);
   set(logAtom, [...snapshot.log]);
@@ -50,6 +54,7 @@ export const simInitAtom = atom(null, (_get, set, snapshot: MonitorSnapshot) => 
   set(simLeakAtom, snapshot.simLeak);
   set(poolIdxAtom, 0);
   set(uidAtom, 0);
+  set(simSeededAtom, true);
 });
 
 export const pollAtom = atom(null, (get, set) => {
@@ -77,11 +82,16 @@ export const leakAtom = atom(null, (get, set) => {
   set(intakeQueueAtom, [...get(intakeQueueAtom), makeSimTicket(leak, uid)]);
 });
 
+function isSimTicket(entry: IntakeQueueItem): entry is SimTicket {
+  return "dest" in entry && entry.dest != null;
+}
+
 export const nextAtom = atom(null, (get, set) => {
   const queue = get(intakeQueueAtom);
   if (queue.length === 0) return;
   const [entry, ...rest] = queue;
   set(intakeQueueAtom, rest);
+  if (!isSimTicket(entry)) return;
 
   const t = nowClock();
   const refs = entry.rule ? [entry.rule] : [];

@@ -1,9 +1,12 @@
-import type { BoardColumns, IssueViewModel, Lane } from "@/modules/operators/types";
-
-const COLUMNS: Lane[] = ["needs_review", "in_review", "on_hold", "resolved"];
+import type { BoardColumns, IssueViewModel } from "@/modules/operators/types";
 
 export function groupByColumn(viewModels: IssueViewModel[]): BoardColumns {
-  const grouped = Object.fromEntries(COLUMNS.map((c) => [c, []])) as BoardColumns;
+  const grouped: BoardColumns = {
+    needs_review: [],
+    in_review: [],
+    on_hold: [],
+    resolved: [],
+  };
   for (const vm of viewModels) {
     const lane = vm.decision?.lane;
     if (lane && grouped[lane]) grouped[lane].push(vm);

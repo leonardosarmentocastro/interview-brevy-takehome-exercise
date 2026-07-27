@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useMonitor } from "@/modules/virtual_agents/hooks/use-monitor";
 import { StatStrip } from "@/modules/virtual_agents/components/StatStrip";
@@ -11,6 +11,7 @@ import { IntakeDrawer } from "@/modules/virtual_agents/components/IntakeDrawer";
 import { ResolvedDrawer } from "@/modules/virtual_agents/components/ResolvedDrawer";
 import {
   simInitAtom,
+  simSeededAtom,
   intakeQueueAtom,
   waitingAtom,
   resolvedCountAtom,
@@ -27,7 +28,7 @@ import "../style.css";
 export function MonitorPage({ autoRun = true }: { autoRun?: boolean }) {
   const { data, isLoading } = useMonitor();
   const init = useSetAtom(simInitAtom);
-  const [seeded, setSeeded] = useState(false);
+  const seeded = useAtomValue(simSeededAtom);
 
   const intake = useAtomValue(intakeQueueAtom);
   const waiting = useAtomValue(waitingAtom);
@@ -40,7 +41,6 @@ export function MonitorPage({ autoRun = true }: { autoRun?: boolean }) {
   useEffect(() => {
     if (!data || seeded) return;
     init(data);
-    setSeeded(true);
   }, [data, init, seeded]);
 
   if (isLoading || !data) {
