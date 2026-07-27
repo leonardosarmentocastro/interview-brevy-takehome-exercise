@@ -8,15 +8,11 @@ const cards = [
 
 describe("filterCards", () => {
   it("filters by category and query", () => {
-    expect(
-      filterCards(cards, "fraud", "").map(
-        (c: never) => (c as { id: string }).id,
-      ),
-    ).toEqual(["iss_004"]);
-    expect(
-      filterCards(cards, "all", "dana").map(
-        (c: never) => (c as { id: string }).id,
-      ),
-    ).toEqual(["iss_060"]);
+    expect(filterCards(cards, "fraud", "").map((c) => c.id)).toEqual([
+      "iss_004",
+    ]);
+    expect(filterCards(cards, "all", "dana").map((c) => c.id)).toEqual([
+      "iss_060",
+    ]);
   });
 });

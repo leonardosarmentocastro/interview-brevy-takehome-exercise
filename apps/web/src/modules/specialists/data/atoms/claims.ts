@@ -1,7 +1,7 @@
 import { atom } from "jotai";
 import type { SpecialistCard } from "@/modules/specialists/types";
 
-export const claimedIdsAtom = atom<Set<string>>(new Set());
+export const claimedIdsAtom = atom(new Set<string>());
 
 export const claimAtom = atom(null, (get, set, id: string) => {
   const next = new Set(get(claimedIdsAtom));

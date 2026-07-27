@@ -14,11 +14,10 @@ describe("claims", () => {
     const queue = [{ id: "iss_087" }, { id: "iss_099" }] as never[];
     const investigating = [{ id: "iss_054" }] as never[];
     const lanes = deriveLanes(queue, investigating, store.get(claimedIdsAtom));
-    expect(lanes.queue.map((c: never) => (c as { id: string }).id)).toEqual([
-      "iss_099",
+    expect(lanes.queue.map((c) => c.id)).toEqual(["iss_099"]);
+    expect(lanes.investigating.map((c) => c.id)).toEqual([
+      "iss_087",
+      "iss_054",
     ]);
-    expect(
-      lanes.investigating.map((c: never) => (c as { id: string }).id),
-    ).toEqual(["iss_087", "iss_054"]);
   });
 });
