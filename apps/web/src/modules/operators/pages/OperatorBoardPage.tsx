@@ -1,7 +1,6 @@
 "use client";
 
 import { useIssues } from "@/modules/operators/hooks/use-issues";
-import { AgentSummary } from "@/modules/operators/components/AgentSummary";
 import { BoardColumn } from "@/modules/operators/components/BoardColumn";
 import "../style.css";
 
@@ -12,11 +11,10 @@ export function OperatorBoardPage() {
     return <main data-testid="screen-operator">Loading…</main>;
   }
 
-  const { columns, agentSummary } = data;
+  const { columns } = data;
 
   return (
     <main data-testid="screen-operator">
-      <AgentSummary summary={agentSummary} />
       <div className="twozone">
         <div className="zone team">
           <div className="zhead">

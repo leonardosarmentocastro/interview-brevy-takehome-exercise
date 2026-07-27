@@ -41,4 +41,11 @@ describe("OperatorBoardPage", () => {
     expect(screen.getByRole("heading", { name: /on hold/i })).toBeInTheDocument();
     expect(screen.getByText("$45.00")).toBeInTheDocument();
   });
+
+  it("does not render the Virtual agent — today summary", () => {
+    render(<OperatorBoardPage />);
+    expect(
+      screen.queryByRole("heading", { name: /Virtual agent — today/i }),
+    ).not.toBeInTheDocument();
+  });
 });
