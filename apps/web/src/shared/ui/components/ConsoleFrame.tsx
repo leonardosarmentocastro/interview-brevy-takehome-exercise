@@ -1,5 +1,6 @@
 "use client";
 import { useAtom } from "jotai";
+import { usePathname } from "next/navigation";
 import { roleAtom } from "../data/atoms/role";
 import { AppHeader } from "./AppHeader";
 import { PipelineNav } from "./PipelineNav";
@@ -10,10 +11,14 @@ import "../style.css";
 
 export function ConsoleFrame({ children }: { children: ReactNode }) {
   const [role, setRole] = useAtom(roleAtom);
+  const pathname = usePathname();
+  const hideAppbar = pathname === "/monitors/agents/drill";
   return (
     <>
       <div className="wrap">
-        <AppHeader onSwitchRole={() => setRole(null)} />
+        {hideAppbar ? null : (
+          <AppHeader onSwitchRole={() => setRole(null)} />
+        )}
         {children}
         <PipelineNav />
       </div>
