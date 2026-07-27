@@ -1,3 +1,1 @@
-export default function DrillRoute() {
-  return <main data-testid="screen-drill">Drill</main>;
-}
+export { DrillPage as default } from "@/modules/virtual_agents/pages/DrillPage";
