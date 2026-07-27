@@ -57,7 +57,7 @@ export function DecisionRail({ decision }: { decision: Decision }) {
   );
 
   return (
-    <div className="flex flex-col gap-5 border-l border-line bg-[#0b0e13] p-5">
+    <div className="flex flex-col gap-5 border-t border-line bg-[#0b0e13] p-5 md:border-l md:border-t-0">
       <div className="overflow-hidden rounded-[10px] border border-line bg-col">
         <div className="border-b border-line px-[13px] py-[11px] font-mono text-[10.5px] uppercase tracking-[0.6px] text-tx3">
           Decision · what you do
