@@ -52,4 +52,11 @@ describe("DrillPage", () => {
     expect(screen.getByText("iss_004")).toBeInTheDocument();
     expect(screen.queryByText("iss_060")).not.toBeInTheDocument();
   });
+
+  it("renders subtitle and rule/pattern policy links", () => {
+    const { container } = render(<DrillPage />);
+    expect(container.querySelector("p.sub")).not.toBeNull();
+    expect(container.querySelector("td.rule .plink")).not.toBeNull();
+    expect(container.querySelector(".pattern .plink")).not.toBeNull();
+  });
 });
