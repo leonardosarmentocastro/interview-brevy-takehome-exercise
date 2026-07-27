@@ -1,0 +1,73 @@
+.pnav {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-col);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  padding: 5px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  z-index: 60;
+}
+.pstep-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pstep {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 13px;
+  border: 1px solid var(--color-line);
+  border-radius: 9px;
+  cursor: pointer;
+  background: var(--color-col2);
+  text-decoration: none;
+  color: inherit;
+}
+.pstep .pi {
+  font-size: 15px;
+  line-height: 1;
+  flex: none;
+}
+.pstep .ptxt {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.pstep .pt {
+  font: 600 11.5px system-ui;
+  color: var(--color-tx3);
+}
+.pstep .ps {
+  font: 9px var(--font-mono);
+  letter-spacing: 0.2px;
+  color: var(--color-tx3);
+  opacity: 0.75;
+}
+.pstep:not(.active):hover .pt {
+  color: var(--color-tx2);
+}
+.pstep.active {
+  background: rgba(88, 166, 255, 0.13);
+  border-color: rgba(88, 166, 255, 0.45);
+}
+.pstep.active .pt {
+  color: var(--color-info);
+}
+.pstep.active .ps {
+  color: var(--color-info);
+  opacity: 0.8;
+}
+.pnav .arr {
+  color: var(--color-tx3);
+  font-size: 13px;
+  padding: 0 3px;
+  flex: none;
+  opacity: 0.7;
+}
