@@ -1,12 +1,17 @@
 "use client";
 
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useSpecialist } from "@/modules/specialists/hooks/use-specialist";
 import {
   filterCards,
   specCatAtom,
   specQueryAtom,
 } from "@/modules/specialists/data/atoms/filter";
+import {
+  claimAtom,
+  claimedIdsAtom,
+  deriveLanes,
+} from "@/modules/specialists/data/atoms/claims";
 import { Toolbar } from "@/modules/specialists/components/Toolbar";
 import { SpecialistCard } from "@/modules/specialists/components/SpecialistCard";
 import type { SpecialistCard as Card } from "@/modules/specialists/types";
@@ -19,6 +24,7 @@ function Lane({
   claimed,
   resolved,
   shared,
+  onClaim,
 }: {
   title: string;
   note: string;
@@ -26,6 +32,7 @@ function Lane({
   claimed?: boolean;
   resolved?: boolean;
   shared?: boolean;
+  onClaim?: (id: string) => void;
 }) {
   return (
     <div className={`col sbcol${shared ? " shared" : ""}`}>
@@ -42,6 +49,7 @@ function Lane({
               card={c}
               claimed={claimed || c.claimed}
               resolved={resolved}
+              onClaim={onClaim}
             />
           ))
         ) : (
@@ -56,13 +64,20 @@ export function SpecialistBoardPage() {
   const { data, isLoading } = useSpecialist();
   const cat = useAtomValue(specCatAtom);
   const query = useAtomValue(specQueryAtom);
+  const claimedIds = useAtomValue(claimedIdsAtom);
+  const claim = useSetAtom(claimAtom);
 
   if (isLoading || !data) {
     return <main data-testid="screen-specialist">Loading…</main>;
   }
 
-  const queue = filterCards(data.queue, cat, query);
-  const investigating = data.mine.investigating ?? [];
+  const lanes = deriveLanes(
+    data.queue,
+    data.mine.investigating ?? [],
+    claimedIds,
+  );
+  const queue = filterCards(lanes.queue, cat, query);
+  const investigating = lanes.investigating;
   const onhold = data.mine.onhold ?? [];
   const resolved = data.mine.resolved ?? [];
 
@@ -84,6 +99,7 @@ export function SpecialistBoardPage() {
               note={`${data.breakdown} — claim one to lock it to you & leave others' view.`}
               cards={queue}
               shared
+              onClaim={(id) => claim(id)}
             />
           </div>
           <div className="zone mine">
