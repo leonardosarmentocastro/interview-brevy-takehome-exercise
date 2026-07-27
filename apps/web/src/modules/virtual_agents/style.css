@@ -116,7 +116,7 @@
 .crumb .path { font: 11.5px var(--font-mono); color: var(--color-tx3); }
 .crumb .path b { color: var(--color-ok); }
 .head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
-.head h1 { font-size: 18px; margin: 0; }
+.head h1 { font-size: 18px; font-weight: 700; margin: 0; }
 .head .tag { font: 9.5px var(--font-mono); letter-spacing: 0.5px; text-transform: uppercase; color: var(--color-ok); border: 1px solid rgba(63, 185, 80, 0.4); border-radius: 99px; padding: 2px 8px; }
 .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
 .search { flex: 1; min-width: 200px; background: var(--color-col); border: 1px solid var(--color-line); color: var(--color-tx); border-radius: 8px; padding: 9px 12px; font: 12.5px var(--font-mono); }
@@ -137,12 +137,14 @@
 .tbl td.amt { font: 600 12.5px var(--font-mono); color: var(--color-tx); text-align: right; }
 .tbl td.time { font: 11.5px var(--font-mono); color: var(--color-tx3); }
 .tbl td.rule { font: 11.5px var(--font-mono); }
+.tbl td.rule .plink { color: var(--color-ok); }
 .tbl td.chev { color: var(--color-tx3); text-align: right; }
 .count-note { font: 11px var(--font-mono); color: var(--color-tx3); margin-top: 10px; text-align: right; }
 .count-note b { color: var(--color-tx2); }
 .norows { padding: 26px; text-align: center; color: var(--color-tx3); font-style: italic; font-size: 12.5px; }
 .pattern { margin-top: 16px; border: 1px solid rgba(210, 153, 34, 0.28); background: rgba(210, 153, 34, 0.05); border-radius: 9px; padding: 11px 14px; font-size: 12.5px; color: var(--color-tx2); line-height: 1.5; }
 .pattern b { color: var(--color-tx); }
+.pattern .plink { color: var(--color-ok); }
 .pattern .lb { font: 9.5px var(--font-mono); letter-spacing: 0.4px; text-transform: uppercase; color: var(--color-warn); display: block; margin-bottom: 5px; }
 
 .livebar {
@@ -164,4 +166,4 @@
   background: var(--color-ok);
   animation: live 1.6s infinite;
 }
-.sub { font-size: 13px; color: var(--color-tx2); margin: 0 0 16px; line-height: 1.5; max-width: 720px; }
+.sub { font-size: 13px; color: var(--color-tx2); margin: 0 0 16px; line-height: 1.5; }
