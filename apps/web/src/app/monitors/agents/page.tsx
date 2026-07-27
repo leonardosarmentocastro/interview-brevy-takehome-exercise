@@ -1,3 +1,1 @@
-export default function MonitorRoute() {
-  return <main data-testid="screen-monitor">Monitor</main>;
-}
+export { MonitorPage as default } from "@/modules/virtual_agents/pages/MonitorPage";
