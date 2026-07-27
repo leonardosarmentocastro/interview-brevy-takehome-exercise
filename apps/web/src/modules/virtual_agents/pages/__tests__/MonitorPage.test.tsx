@@ -38,4 +38,16 @@ describe("MonitorPage", () => {
       "/monitors/agents/drill",
     );
   });
+
+  it("keeps the live indicator and drops the duplicate page header", () => {
+    render(<MonitorPage autoRun={false} />);
+    expect(screen.getByText(/live · updates as tickets flow/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /virtual agent — pipeline monitor/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/machine · read-only/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Everything the automation is handling/i),
+    ).not.toBeInTheDocument();
+  });
 });

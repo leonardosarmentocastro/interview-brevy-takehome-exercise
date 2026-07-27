@@ -74,7 +74,7 @@
 
 .appbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   padding: 10px 14px;
   background: var(--color-col);
@@ -86,20 +86,42 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1;
 }
 .appbar .eyebrow {
   font: 9.5px var(--font-mono);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--color-tx3);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.appbar .htag {
+  font: 9.5px var(--font-mono);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-info);
+  border: 1px solid rgba(88, 166, 255, 0.4);
+  border-radius: 99px;
+  padding: 2px 8px;
 }
 .appbar .ttl h2 {
   margin: 1px 0 0;
   font-size: 15px;
   font-weight: 700;
 }
-.appbar .spacer {
-  flex: 1;
+.appbar .hdesc {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--color-tx2);
+  line-height: 1.5;
+  max-width: 720px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: inherit;
+  font-weight: 400;
 }
 .idchip {
   display: flex;
@@ -113,6 +135,8 @@
   transition: 0.12s;
   font: inherit;
   color: inherit;
+  align-self: center;
+  flex-shrink: 0;
 }
 .idchip:hover {
   border-color: rgba(88, 166, 255, 0.5);

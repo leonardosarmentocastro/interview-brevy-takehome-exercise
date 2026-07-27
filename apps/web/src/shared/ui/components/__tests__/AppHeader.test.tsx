@@ -21,4 +21,23 @@ describe("AppHeader", () => {
     await userEvent.click(screen.getByRole("button", { name: /switch role/i }));
     expect(onSwitchRole).toHaveBeenCalledOnce();
   });
+
+  it("shows the machine badge and interaction description on the monitor view", () => {
+    path = "/monitors/agents";
+    render(<AppHeader onSwitchRole={() => {}} />);
+    expect(screen.getByText(/layer 1 of 3/i)).toBeInTheDocument();
+    expect(screen.getByText(/machine · read-only/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Everything the automation is handling with no human involved/i),
+    ).toBeInTheDocument();
+  });
+
+  it("omits the machine badge and monitor description on other views", () => {
+    path = "/boards/operators";
+    render(<AppHeader onSwitchRole={() => {}} />);
+    expect(screen.queryByText(/machine · read-only/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Everything the automation is handling/i),
+    ).not.toBeInTheDocument();
+  });
 });

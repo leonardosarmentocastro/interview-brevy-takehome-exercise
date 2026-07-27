@@ -58,20 +58,12 @@ export function MonitorPage({ autoRun = true }: { autoRun?: boolean }) {
 
   return (
     <main data-testid="screen-monitor">
-      <div className="mhead">
-        <span className="ico">◆</span>
-        <h1>Virtual agent — pipeline monitor</h1>
-        <span className="tag">machine · read-only</span>
+      <div className="livebar">
         <span className="live">
           <span className="dot" />
           live · updates as tickets flow
         </span>
       </div>
-      <p className="sub">
-        Everything the automation is handling with no human involved. You
-        don&apos;t move cards here — the clock does. You can only pull a card
-        out (request review / escalate) if you need to.
-      </p>
       <StatStrip stats={seeded ? stats : data.stats} />
       <AgentLog log={seeded ? log : data.log} />
       <PipelineColumns

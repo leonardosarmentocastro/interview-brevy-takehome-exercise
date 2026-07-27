@@ -161,10 +161,23 @@
 .pattern b { color: var(--color-tx); }
 .pattern .lb { font: 9.5px var(--font-mono); letter-spacing: 0.4px; text-transform: uppercase; color: var(--color-warn); display: block; margin-bottom: 5px; }
 
-.mhead { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; flex-wrap: wrap; }
-.mhead h1 { font-size: 18px; margin: 0; }
-.mhead .ico { color: var(--color-info); }
-.mhead .tag { font: 9.5px var(--font-mono); letter-spacing: 0.5px; text-transform: uppercase; color: var(--color-info); border: 1px solid rgba(88, 166, 255, 0.4); border-radius: 99px; padding: 2px 8px; }
-.mhead .live { margin-left: auto; font: 11px var(--font-mono); color: var(--color-tx3); display: flex; align-items: center; gap: 6px; }
-.mhead .live .dot { width: 7px; height: 7px; border-radius: 99px; background: var(--color-ok); animation: live 1.6s infinite; }
+.livebar {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 10px;
+}
+.livebar .live {
+  font: 11px var(--font-mono);
+  color: var(--color-tx3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.livebar .live .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--color-ok);
+  animation: live 1.6s infinite;
+}
 .sub { font-size: 13px; color: var(--color-tx2); margin: 0 0 16px; line-height: 1.5; max-width: 720px; }
