@@ -1,3 +1,1 @@
-export default function OperatorRoute() {
-  return <main data-testid="screen-operator">Operator</main>;
-}
+export { OperatorBoardPage as default } from "@/modules/operators/pages/OperatorBoardPage";
