@@ -63,9 +63,9 @@
 .tk .t1 { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
 .tk .t1 b { font-size: 13px; color: var(--color-tx); }
 .tk .t2 { font: 12px var(--font-mono); color: var(--color-tx3); margin-top: 4px; }
-.blocker { display: inline-flex; gap: 5px; margin-top: 9px; font: 11px var(--font-mono); padding: 2px 8px; border-radius: 5px; border: 1px solid rgba(210, 153, 34, 0.35); background: rgba(210, 153, 34, 0.09); color: var(--color-warn); }
+.blocker { display: inline-flex; align-items: center; gap: 5px; margin-top: 9px; font: 11px var(--font-mono); padding: 2px 8px; border-radius: 5px; border: 1px solid rgba(210, 153, 34, 0.35); background: rgba(210, 153, 34, 0.09); color: var(--color-warn); }
 .blocker.eval { border-color: rgba(88, 166, 255, 0.35); background: rgba(88, 166, 255, 0.09); color: var(--color-info); }
-.evaldot { width: 7px; height: 7px; border-radius: 99px; background: var(--color-info); display: inline-block; animation: live 1.4s infinite; }
+.evaldot { width: 7px; height: 7px; border-radius: 99px; background: var(--color-info); flex: none; display: block; animation: live 1.4s infinite; }
 .hatch { margin-top: 10px; display: flex; gap: 6px; }
 .hbtn { flex: 1; font: 600 10.5px var(--font-mono); padding: 7px 6px; border-radius: 6px; border: 1px solid var(--color-line); background: var(--color-col); color: var(--color-tx3); cursor: pointer; text-align: center; }
 .hbtn:hover { border-color: var(--color-tx3); color: var(--color-tx2); }

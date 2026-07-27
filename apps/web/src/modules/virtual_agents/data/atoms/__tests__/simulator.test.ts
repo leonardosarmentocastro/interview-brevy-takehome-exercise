@@ -4,6 +4,7 @@ import {
   simInitAtom,
   pollAtom,
   nextAtom,
+  leakAtom,
   intakeQueueAtom,
   resolvedCountAtom,
 } from "@/modules/virtual_agents/data/atoms/simulator";
@@ -49,5 +50,26 @@ describe("simulator atoms", () => {
     store.set(nextAtom);
     expect(store.get(intakeQueueAtom)).toHaveLength(4);
     expect(store.get(resolvedCountAtom)).toBe(before + 1);
+  });
+
+  it("leak enqueues a ticket with facts for the intake drawer", () => {
+    const store = createStore();
+    store.set(simInitAtom, snapshot);
+    store.set(leakAtom);
+    const [ticket] = store.get(intakeQueueAtom);
+    expect(ticket).toMatchObject({
+      type: "z",
+      amountText: "$3",
+      facts: {
+        ticket: expect.arrayContaining([
+          ["Type", "z"],
+          ["Amount", "$3"],
+        ]),
+        customer: expect.any(Array),
+      },
+    });
+    expect(
+      "facts" in ticket && ticket.facts.ticket.length > 0 && ticket.facts.customer.length > 0,
+    ).toBe(true);
   });
 });

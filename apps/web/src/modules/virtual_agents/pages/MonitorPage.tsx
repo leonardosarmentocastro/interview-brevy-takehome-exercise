@@ -22,7 +22,6 @@ import {
   drawerAtom,
   openDrawerAtom,
 } from "@/modules/virtual_agents/data/atoms/drawer";
-import type { IntakeItem } from "@/modules/virtual_agents/types";
 import "../style.css";
 
 export function MonitorPage({ autoRun = true }: { autoRun?: boolean }) {
@@ -48,11 +47,13 @@ export function MonitorPage({ autoRun = true }: { autoRun?: boolean }) {
   }
 
   const liveIntake = seeded ? intake : data.intake;
-  const intakeItem: IntakeItem | undefined =
+  const found =
     drawer?.kind === "intake"
-      ? (liveIntake.find((x) => x.id === drawer.id) as IntakeItem | undefined) ??
+      ? liveIntake.find((x) => x.id === drawer.id) ??
         data.intake.find((x) => x.id === drawer.id)
       : undefined;
+  const intakeItem =
+    found && "facts" in found && found.facts ? found : undefined;
   const analysis =
     drawer?.kind === "resolved" ? data.analysis[drawer.id] : undefined;
 

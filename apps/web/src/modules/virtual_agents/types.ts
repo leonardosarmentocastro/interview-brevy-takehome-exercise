@@ -98,6 +98,7 @@ export type SimPoolTicket = {
   blocker?: string;
   reason?: string;
   rule: number;
+  facts?: IntakeItem["facts"];
 };
 
 export type MonitorStats = {
@@ -123,4 +124,5 @@ export type MonitorSnapshot = {
 
 export type SimTicket = SimPoolTicket & {
   dest: SimDest;
+  facts: IntakeItem["facts"];
 };

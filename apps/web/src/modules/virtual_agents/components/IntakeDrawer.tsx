@@ -20,7 +20,11 @@ function FactTable({ pairs }: { pairs: [string, string][] }) {
   );
 }
 
-export function IntakeDrawer({ item }: { item: IntakeItem }) {
+export function IntakeDrawer({
+  item,
+}: {
+  item: Pick<IntakeItem, "id" | "type" | "amountText" | "facts">;
+}) {
   const close = useSetAtom(closeDrawerAtom);
   return (
     <div className="drawerwrap open">

@@ -1,5 +1,6 @@
 import { atom } from "jotai";
 import type {
+  FactPair,
   IntakeItem,
   LogEntry,
   MonitorSnapshot,
@@ -35,12 +36,32 @@ function nowClock(): string {
   return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
+function synthesizeFacts(base: SimPoolTicket, id: string): IntakeItem["facts"] {
+  const ticket: FactPair[] = [
+    ["Type", base.type],
+    ["Amount", base.amountText],
+    ["Id", id],
+  ];
+  if (base.reason) ticket.push(["Policy gap", base.reason]);
+  if (base.destNote) ticket.push(["Note", base.destNote]);
+  if (base.blocker) ticket.push(["Blocker", base.blocker]);
+  if (base.rule) ticket.push(["Policy ref", `§${base.rule}`]);
+  return {
+    ticket,
+    customer: [
+      ["Context", base.meta],
+      ["Source", "Simulator"],
+    ],
+  };
+}
+
 function makeSimTicket(base: SimPoolTicket, uid: number): SimTicket {
   const id = `${base.id}_${uid}`;
   return {
     ...base,
     id,
     meta: base.meta.replace(/^[^·]+·/, `${id} ·`),
+    facts: base.facts ?? synthesizeFacts(base, id),
   };
 }
 

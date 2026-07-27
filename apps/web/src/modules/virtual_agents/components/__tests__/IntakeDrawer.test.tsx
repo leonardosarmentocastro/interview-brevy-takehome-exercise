@@ -22,4 +22,30 @@ describe("IntakeDrawer", () => {
     expect(screen.getByText("TechGadgets.com")).toBeInTheDocument();
     expect(screen.getByText("Risk score")).toBeInTheDocument();
   });
+
+  it("renders synthesized facts from an injected simulator ticket", () => {
+    render(
+      <IntakeDrawer
+        item={{
+          id: "sim_leak_1",
+          type: "Missed installment",
+          amountText: "$58.00",
+          facts: {
+            ticket: [
+              ["Type", "Missed installment"],
+              ["Amount", "$58.00"],
+              ["Policy gap", "day 4–7 gap"],
+            ],
+            customer: [
+              ["Context", "sim_leak_1 · plan 3/4 · day 5"],
+              ["Source", "Simulator"],
+            ],
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText("sim_leak_1")).toBeInTheDocument();
+    expect(screen.getByText("day 4–7 gap")).toBeInTheDocument();
+    expect(screen.getByText("Simulator")).toBeInTheDocument();
+  });
 });
