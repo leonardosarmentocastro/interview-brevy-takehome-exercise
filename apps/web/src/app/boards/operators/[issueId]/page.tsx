@@ -1,6 +1,10 @@
-export default async function IssueDetailRoute({
+import { IssueDetailPage } from "@/modules/operators/pages/IssueDetailPage";
+
+export default async function Route({
   params,
-}: { params: Promise<{ issueId: string }> }) {
+}: {
+  params: Promise<{ issueId: string }>;
+}) {
   const { issueId } = await params;
-  return <main data-testid="screen-issue-detail">{issueId}</main>;
+  return <IssueDetailPage issueId={issueId} />;
 }
