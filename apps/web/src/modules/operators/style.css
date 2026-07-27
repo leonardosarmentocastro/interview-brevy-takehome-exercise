@@ -1,5 +1,30 @@
 /* Operator board + detail — ported from sample/styles.css (var(--x) → var(--color-x)) */
 
+@keyframes live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.livebar {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 10px;
+}
+.livebar .live {
+  font: 11px var(--font-mono);
+  color: var(--color-tx3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.livebar .live .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--color-ok);
+  animation: live 1.6s infinite;
+}
+
 .agent {
   background: var(--color-col);
   border: 1px solid var(--color-line);
@@ -343,9 +368,13 @@ details.ag:not([open]) .more::after {
   border-radius: 5px;
 }
 .chip.esc {
-  background: rgba(248, 81, 73, 0.13);
+  background: none;
   color: var(--color-bad);
-  border: 1px solid rgba(248, 81, 73, 0.35);
+  border: none;
+  padding: 0;
+  margin-top: 9px;
+  font: 700 11px var(--font-mono);
+  letter-spacing: 0.3px;
 }
 .chip.none {
   background: rgba(139, 151, 168, 0.1);
@@ -370,6 +399,9 @@ details.ag:not([open]) .more::after {
 }
 .cbtn {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font: 600 11px var(--font-mono);
   padding: 7px;
   border-radius: 7px;
@@ -387,6 +419,11 @@ details.ag:not([open]) .more::after {
   border-color: rgba(63, 185, 80, 0.5);
   color: var(--color-ok);
   background: rgba(63, 185, 80, 0.08);
+}
+.cbtn.esc {
+  border-color: rgba(248, 81, 73, 0.5);
+  color: var(--color-bad);
+  background: rgba(248, 81, 73, 0.08);
 }
 
 /* Detail view — ported for Task 12 */

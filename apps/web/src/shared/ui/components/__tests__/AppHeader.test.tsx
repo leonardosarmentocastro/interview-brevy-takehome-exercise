@@ -40,4 +40,14 @@ describe("AppHeader", () => {
       screen.queryByText(/Everything the automation is handling/i),
     ).not.toBeInTheDocument();
   });
+
+  it("shows the operator board description", () => {
+    path = "/boards/operators";
+    render(<AppHeader onSwitchRole={() => {}} />);
+    expect(
+      screen.getByText(
+        /Human review queue for cases the virtual agent couldn’t close/i,
+      ),
+    ).toBeInTheDocument();
+  });
 });

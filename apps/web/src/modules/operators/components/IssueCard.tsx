@@ -66,7 +66,11 @@ export function IssueCard({ vm }: { vm: IssueViewModel }) {
       <div className="cardacts">
         <span className="cbtn">Open ticket</span>
         {rec ? (
-          <span className="cbtn go">{rec.label.replace(/^[▲✓◆]\s*/, "")}</span>
+          <span
+            className={`cbtn ${dec?.why?.face === "escalate" ? "esc" : "go"}`}
+          >
+            {rec.label.replace(/^[▲✓◆]\s*/, "")}
+          </span>
         ) : (
           <span className="cbtn">Claim</span>
         )}

@@ -77,9 +77,6 @@
   align-items: flex-start;
   gap: 14px;
   padding: 10px 14px;
-  background: var(--color-col);
-  border: 1px solid var(--color-line);
-  border-radius: 10px;
   margin-bottom: 16px;
 }
 .appbar .ttl {
@@ -113,7 +110,7 @@
   font-weight: 700;
 }
 .appbar .hdesc {
-  margin: 6px 0 0;
+  margin: 0;
   font-size: 13px;
   color: var(--color-tx2);
   line-height: 1.5;

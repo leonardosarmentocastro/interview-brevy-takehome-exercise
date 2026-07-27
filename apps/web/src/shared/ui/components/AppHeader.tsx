@@ -10,7 +10,13 @@ const HEADERS = [
     description:
       "Everything the automation is handling with no human involved. You don't move cards here — the clock does. You can only pull a card out (request review / escalate) if you need to.",
   },
-  { match: "/boards/operators", layer: 2, title: "Operator board — for human review" },
+  {
+    match: "/boards/operators",
+    layer: 2,
+    title: "Operator board — for human review",
+    description:
+      "Human review queue for cases the virtual agent couldn’t close. Claim a card, act on it, or escalate to a specialist.",
+  },
   {
     match: "/boards/specialists",
     layer: 3,
