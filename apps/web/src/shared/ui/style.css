@@ -1,0 +1,320 @@
+.pnav {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-col);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  padding: 5px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  z-index: 60;
+}
+.pstep-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pstep {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 13px;
+  border: 1px solid var(--color-line);
+  border-radius: 9px;
+  cursor: pointer;
+  background: var(--color-col2);
+  text-decoration: none;
+  color: inherit;
+}
+.pstep .pi {
+  font-size: 15px;
+  line-height: 1;
+  flex: none;
+}
+.pstep .ptxt {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.pstep .pt {
+  font: 600 11.5px system-ui;
+  color: var(--color-tx3);
+}
+.pstep .ps {
+  font: 9px var(--font-mono);
+  letter-spacing: 0.2px;
+  color: var(--color-tx3);
+  opacity: 0.75;
+}
+.pstep:not(.active):hover .pt {
+  color: var(--color-tx2);
+}
+.pstep.active {
+  background: rgba(88, 166, 255, 0.13);
+  border-color: rgba(88, 166, 255, 0.45);
+}
+.pstep.active .pt {
+  color: var(--color-info);
+}
+.pstep.active .ps {
+  color: var(--color-info);
+  opacity: 0.8;
+}
+.pnav .arr {
+  color: var(--color-tx3);
+  font-size: 13px;
+  padding: 0 3px;
+  flex: none;
+  opacity: 0.7;
+}
+
+.appbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 10px 14px;
+  background: var(--color-col);
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+.appbar .ttl {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.appbar .eyebrow {
+  font: 9.5px var(--font-mono);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-tx3);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.appbar .htag {
+  font: 9.5px var(--font-mono);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-info);
+  border: 1px solid rgba(88, 166, 255, 0.4);
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+.appbar .ttl h2 {
+  margin: 1px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+.appbar .hdesc {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--color-tx2);
+  line-height: 1.5;
+  max-width: 720px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: inherit;
+  font-weight: 400;
+}
+.idchip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 10px 5px 6px;
+  border: 1px solid var(--color-line);
+  border-radius: 99px;
+  background: var(--color-col2);
+  cursor: pointer;
+  transition: 0.12s;
+  font: inherit;
+  color: inherit;
+  align-self: center;
+  flex-shrink: 0;
+}
+.idchip:hover {
+  border-color: rgba(88, 166, 255, 0.5);
+  background: rgba(88, 166, 255, 0.08);
+}
+.idchip .ava {
+  width: 30px;
+  height: 30px;
+  border-radius: 99px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  background: rgba(88, 166, 255, 0.16);
+  border: 1px solid rgba(88, 166, 255, 0.5);
+  color: var(--color-info);
+  font: 700 10px var(--font-mono);
+  letter-spacing: 0.5px;
+}
+.idchip .who {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  text-align: left;
+}
+.idchip .who .r {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.idchip .who .h {
+  font: 9px var(--font-mono);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--color-tx3);
+}
+.idchip .car {
+  color: var(--color-tx3);
+  font-size: 11px;
+}
+
+.wrap {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  padding-bottom: 80px;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(4, 6, 9, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 1200;
+  transition: opacity 0.18s;
+}
+.overlay .modal {
+  width: 410px;
+  max-width: 92%;
+  background: var(--color-col);
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+.modal .mh {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 3px;
+}
+.modal .mh .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--color-ok);
+}
+.modal .mh .brand {
+  font: 700 11px var(--font-mono);
+  letter-spacing: 0.4px;
+  color: var(--color-tx2);
+}
+.modal .mtitle {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 8px 0 2px;
+}
+.modal .mnote {
+  color: var(--color-tx3);
+  font-size: 12px;
+  margin: 0 0 15px;
+}
+.modal .mnote code {
+  font-family: var(--font-mono);
+  color: var(--color-warn);
+}
+.modal .role {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  padding: 12px 13px;
+  margin-bottom: 9px;
+  background: var(--color-col2);
+  transition: 0.12s;
+}
+.modal .role .rava {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font: 700 12px var(--font-mono);
+  background: #222a38;
+  border: 1px solid var(--color-line);
+  color: var(--color-tx3);
+}
+.modal .role .rbody {
+  flex: 1;
+  min-width: 0;
+}
+.modal .role .rname {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.modal .role .rname .mgr {
+  color: var(--color-tx3);
+  font-weight: 400;
+}
+.modal .role .rscope {
+  color: var(--color-tx3);
+  font-size: 12px;
+  margin-top: 3px;
+}
+.modal .role .rtag {
+  font: 9px var(--font-mono);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  border: 1px solid rgba(210, 153, 34, 0.4);
+  border-radius: 99px;
+  padding: 1px 7px;
+  color: var(--color-warn);
+  white-space: nowrap;
+}
+.modal .role .cont {
+  font: 700 11px var(--font-mono);
+  color: var(--color-info);
+  white-space: nowrap;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.modal .role.admin {
+  border-color: rgba(88, 166, 255, 0.5);
+  background: rgba(88, 166, 255, 0.07);
+  cursor: pointer;
+}
+.modal .role.admin:hover {
+  background: rgba(88, 166, 255, 0.13);
+}
+.modal .role.admin .rava {
+  background: rgba(88, 166, 255, 0.15);
+  border-color: rgba(88, 166, 255, 0.5);
+  color: var(--color-info);
+}
+.modal .role.off {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
+.modal .mfoot {
+  font: 11px var(--font-mono);
+  color: var(--color-tx3);
+  text-align: center;
+  margin-top: 11px;
+}
+.modal .mfoot b {
+  color: var(--color-info);
+}

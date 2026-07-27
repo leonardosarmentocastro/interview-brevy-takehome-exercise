@@ -1,0 +1,81 @@
+.plink {
+  color: var(--color-info);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+}
+.plink:hover {
+  color: #79b8ff;
+}
+
+.polmodal {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+.polbackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+}
+.poldialog {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(640px, 92vw);
+  max-height: 80vh;
+  overflow: auto;
+  background: var(--color-col);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.polhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--color-line);
+  font: 12px var(--font-mono);
+  color: var(--color-tx2);
+  position: sticky;
+  top: 0;
+  background: var(--color-col);
+}
+.polhead button {
+  background: none;
+  border: 0;
+  color: var(--color-tx3);
+  font-size: 15px;
+  cursor: pointer;
+}
+.polbody {
+  padding: 12px 6px;
+}
+.polline {
+  display: flex;
+  gap: 12px;
+  padding: 3px 12px;
+  font: 12.5px var(--font-mono);
+  color: var(--color-tx2);
+  line-height: 1.6;
+}
+.polline .ln {
+  color: var(--color-tx3);
+  min-width: 26px;
+  text-align: right;
+  flex: none;
+}
+.polline.hit {
+  background: rgba(210, 153, 34, 0.14);
+  border-left: 2px solid var(--color-warn);
+}
+.polline.hit,
+.polline.hit .ln {
+  color: var(--color-tx);
+}
