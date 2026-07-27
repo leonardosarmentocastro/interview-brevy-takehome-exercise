@@ -1,3 +1,5 @@
+import { SpecialistBoardPage } from "@/modules/specialists/pages/SpecialistBoardPage";
+
 export default function SpecialistRoute() {
-  return <main data-testid="screen-specialist">Specialist</main>;
+  return <SpecialistBoardPage />;
 }
