@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useSetAtom, useAtomValue } from "jotai";
+import { createStore, Provider, useSetAtom, useAtomValue } from "jotai";
 import { CapturePanel } from "@/modules/operators/components/CapturePanel";
+import { DecisionDialog } from "@/modules/operators/components/DecisionDialog";
 import {
   openCaptureAtom,
   captureLogAtom,
@@ -13,19 +14,36 @@ function Harness() {
   const log = useAtomValue(captureLogAtom);
   return (
     <>
-      <button onClick={() => open("Escalate to specialist")}>open</button>
+      <button onClick={() => open({ label: "Escalate to specialist", danger: true })}>
+        open
+      </button>
       <span data-testid="n">{log.length}</span>
       <CapturePanel />
+      <DecisionDialog />
     </>
   );
 }
 
 describe("CapturePanel", () => {
-  it("confirms an action into the audit log", async () => {
-    render(<Harness />);
+  it("requires a second confirmation before writing to the audit log", async () => {
+    render(
+      <Provider store={createStore()}>
+        <Harness />
+      </Provider>,
+    );
+
     await userEvent.click(screen.getByRole("button", { name: "open" }));
     expect(screen.getByText(/confirm & log/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /confirm/i }));
+
+    // First confirm only opens the confirmation dialog — nothing logged yet.
+    await userEvent.click(screen.getByRole("button", { name: /^Confirm$/ }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByTestId("n")).toHaveTextContent("0");
+
+    // Confirming in the dialog commits it.
+    await userEvent.click(
+      screen.getByRole("button", { name: /Confirm decision/ }),
+    );
     expect(screen.getByTestId("n")).toHaveTextContent("1");
   });
 });

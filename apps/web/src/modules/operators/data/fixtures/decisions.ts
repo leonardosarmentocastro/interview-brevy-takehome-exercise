@@ -100,7 +100,11 @@ export const DECISIONS: Record<string, Decision> = {
     actions: {
       recommended: null,
       others: [
-        { label: "Schedule 3rd retry", sub: "if the budget is 4 attempts" },
+        {
+          label: "Schedule 3rd retry",
+          sub: "if the budget is 4 attempts",
+          variant: "go",
+        },
         { label: "Escalate to specialist", danger: true },
         { label: "Put on hold", sub: "pending a ruling" },
       ],

@@ -50,4 +50,20 @@ describe("ConsoleFrame", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByTestId("child")).toBeInTheDocument();
   });
+
+  it("hides the appbar and pipeline nav on an operator ticket detail route", () => {
+    wrap("/boards/operators/iss_001");
+    expect(
+      screen.queryByRole("button", { name: /switch role/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    expect(screen.getByTestId("child")).toBeInTheDocument();
+  });
+
+  it("keeps the appbar on the operator board route", () => {
+    wrap("/boards/operators");
+    expect(
+      screen.getByRole("button", { name: /switch role/i }),
+    ).toBeInTheDocument();
+  });
 });

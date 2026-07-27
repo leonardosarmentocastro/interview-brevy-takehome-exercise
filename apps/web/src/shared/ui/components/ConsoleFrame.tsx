@@ -12,7 +12,10 @@ import "../style.css";
 export function ConsoleFrame({ children }: { children: ReactNode }) {
   const [role, setRole] = useAtom(roleAtom);
   const pathname = usePathname();
-  const hideAppbar = pathname === "/monitors/agents/drill";
+  // Ticket detail is a focused, full-page view: no app bar, no pipeline nav.
+  const isOperatorDetail = /^\/boards\/operators\/.+/.test(pathname);
+  const hideAppbar = pathname === "/monitors/agents/drill" || isOperatorDetail;
+  const hideNav = isOperatorDetail;
   return (
     <>
       <div className="wrap">
@@ -20,7 +23,7 @@ export function ConsoleFrame({ children }: { children: ReactNode }) {
           <AppHeader onSwitchRole={() => setRole(null)} />
         )}
         {children}
-        <PipelineNav />
+        {hideNav ? null : <PipelineNav />}
       </div>
       <RoleModal open={role === null} onPick={(r) => setRole(r)} />
       <PolicyModal />
