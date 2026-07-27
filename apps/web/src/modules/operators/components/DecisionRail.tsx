@@ -1,7 +1,10 @@
 "use client";
 
+import { useSetAtom } from "jotai";
 import { PolicyLink } from "@/shared/policies/components/PolicyLink";
 import type { Decision } from "@/modules/operators/types";
+import { openCaptureAtom } from "@/modules/operators/data/atoms/capture";
+import { CapturePanel } from "./CapturePanel";
 import "../style.css";
 
 export function DecisionRail({ decision }: { decision: Decision }) {
@@ -9,6 +12,7 @@ export function DecisionRail({ decision }: { decision: Decision }) {
   const rec = decision.actions?.recommended;
   const others = decision.actions?.others ?? [];
   const activity = decision.activity ?? [];
+  const openCapture = useSetAtom(openCaptureAtom);
 
   return (
     <div className="rail">
@@ -37,6 +41,7 @@ export function DecisionRail({ decision }: { decision: Decision }) {
               <button
                 type="button"
                 className={`abtn rec-${rec.variant ?? "esc"}`}
+                onClick={() => openCapture(rec.label)}
               >
                 {rec.label}
                 {rec.sub ? <span className="sub">{rec.sub}</span> : null}
@@ -51,11 +56,13 @@ export function DecisionRail({ decision }: { decision: Decision }) {
               key={a.label}
               type="button"
               className={`abtn${a.danger ? " danger" : ""}`}
+              onClick={() => openCapture(a.label)}
             >
               {a.label}
               {a.sub ? <span className="sub">{a.sub}</span> : null}
             </button>
           ))}
+          <CapturePanel />
           <div className="logged">
             Every action writes an audit record —{" "}
             <b>who, when, action, reason, policy version</b>. policies.md:90

@@ -669,48 +669,68 @@ details.ag:not([open]) .more::after {
   font-size: 11px;
 }
 
-.cap {
-  margin-top: 12px;
-  border: 1px solid var(--color-line);
-  border-radius: 9px;
+.capture {
+  border: 1px dashed rgba(63, 185, 80, 0.45);
+  border-radius: 8px;
   padding: 12px;
-  background: var(--color-col2);
+  margin: 2px 0 9px;
+  background: rgba(63, 185, 80, 0.05);
 }
-.cap h5 {
-  margin: 0 0 8px;
-  font-size: 12.5px;
+.capture .cl-h {
+  font: 10.5px var(--font-mono);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--color-ok);
+  margin-bottom: 10px;
 }
-.cap textarea {
+.fld {
+  margin-bottom: 10px;
+}
+.fld label {
+  display: block;
+  font: 10.5px var(--font-mono);
+  color: var(--color-tx3);
+  letter-spacing: 0.3px;
+  margin-bottom: 4px;
+}
+.fld select,
+.fld textarea,
+.fld input {
   width: 100%;
-  min-height: 72px;
-  resize: vertical;
-  background: var(--color-col);
-  color: var(--color-tx);
+  background: var(--color-bg);
   border: 1px solid var(--color-line);
-  border-radius: 7px;
-  padding: 8px;
+  color: var(--color-tx);
+  border-radius: 6px;
+  padding: 7px 9px;
   font: 12.5px inherit;
   box-sizing: border-box;
 }
-.cap .capacts {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
+.fld textarea {
+  resize: vertical;
+  min-height: 52px;
 }
-.cap .capacts button {
-  flex: 1;
-  font: 600 12px inherit;
-  padding: 8px;
+.capfoot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+.capbtn {
+  font: 600 12.5px inherit;
+  padding: 9px 16px;
   border-radius: 7px;
   border: 1px solid var(--color-line);
-  background: var(--color-col);
+  background: var(--color-col2);
   color: var(--color-tx2);
   cursor: pointer;
 }
-.cap .capacts button.primary {
-  border-color: rgba(63, 185, 80, 0.5);
+.capbtn:hover {
+  border-color: var(--color-tx3);
+  color: var(--color-tx);
+}
+.capbtn.go {
+  border-color: rgba(63, 185, 80, 0.6);
+  background: rgba(63, 185, 80, 0.15);
   color: var(--color-ok);
-  background: rgba(63, 185, 80, 0.1);
 }
 
 @media (max-width: 960px) {
