@@ -26,4 +26,35 @@ describe("IssueCard", () => {
       "/boards/operators/iss_003",
     );
   });
+
+  it("styles escalate recommendation and CTA in red, not green go", () => {
+    const escalateVm = {
+      ...vm,
+      decision: {
+        why: {
+          face: "escalate",
+          lead: "▲ RECOMMEND ESCALATE TO SPECIALIST",
+          because: "Dispute amount exceeds trigger.",
+          ref: 53,
+        },
+        actions: {
+          recommended: {
+            label: "▲ Escalate to specialist",
+            sub: "amount over $200",
+          },
+          others: [],
+        },
+        urgency: { level: "soon", label: "⏱ carrier ETA Jan 14" },
+      },
+    } as unknown as IssueViewModel;
+
+    const { container } = render(<IssueCard vm={escalateVm} />);
+    expect(
+      screen.getByText(/RECOMMEND ESCALATE TO SPECIALIST/i),
+    ).toBeInTheDocument();
+    const escBtn = screen.getByText(/^Escalate to specialist$/);
+    expect(escBtn.className).toMatch(/\besc\b/);
+    expect(escBtn.className).not.toMatch(/\bgo\b/);
+    expect(container.querySelector(".chip.esc")).not.toBeNull();
+  });
 });

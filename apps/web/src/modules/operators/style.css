@@ -343,9 +343,13 @@ details.ag:not([open]) .more::after {
   border-radius: 5px;
 }
 .chip.esc {
-  background: rgba(248, 81, 73, 0.13);
+  background: none;
   color: var(--color-bad);
-  border: 1px solid rgba(248, 81, 73, 0.35);
+  border: none;
+  padding: 0;
+  margin-top: 9px;
+  font: 700 11px var(--font-mono);
+  letter-spacing: 0.3px;
 }
 .chip.none {
   background: rgba(139, 151, 168, 0.1);
@@ -370,6 +374,9 @@ details.ag:not([open]) .more::after {
 }
 .cbtn {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font: 600 11px var(--font-mono);
   padding: 7px;
   border-radius: 7px;
@@ -387,6 +394,11 @@ details.ag:not([open]) .more::after {
   border-color: rgba(63, 185, 80, 0.5);
   color: var(--color-ok);
   background: rgba(63, 185, 80, 0.08);
+}
+.cbtn.esc {
+  border-color: rgba(248, 81, 73, 0.5);
+  color: var(--color-bad);
+  background: rgba(248, 81, 73, 0.08);
 }
 
 /* Detail view — ported for Task 12 */
