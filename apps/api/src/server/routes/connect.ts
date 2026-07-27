@@ -2,6 +2,7 @@ import { Router, type Express } from "express";
 import { z } from "zod";
 import { ConflictError, NotFoundError } from "@/db/data/errors";
 import { healthRouter } from "@/modules/health/routes";
+import { issuesRouter } from "@/modules/issues/routes";
 
 /**
  * Mounts every module's router on the app under its base path. New modules
@@ -9,6 +10,7 @@ import { healthRouter } from "@/modules/health/routes";
  */
 export const connectRoutes = (app: Express): void => {
   app.use("/health", healthRouter);
+  app.use("/issues", issuesRouter);
 
   // Test-only routes that deliberately trigger each branch of the global error
   // handler, so middleware behavior can be tested where it is owned
