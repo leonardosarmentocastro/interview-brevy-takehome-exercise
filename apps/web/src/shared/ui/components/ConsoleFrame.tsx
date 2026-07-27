@@ -4,6 +4,7 @@ import { roleAtom } from "../data/atoms/role";
 import { AppHeader } from "./AppHeader";
 import { PipelineNav } from "./PipelineNav";
 import { RoleModal } from "./RoleModal";
+import { PolicyModal } from "@/shared/policies/components/PolicyModal";
 import type { ReactNode } from "react";
 import "../style.css";
 
@@ -17,6 +18,7 @@ export function ConsoleFrame({ children }: { children: ReactNode }) {
         <PipelineNav />
       </div>
       <RoleModal open={role === null} onPick={(r) => setRole(r)} />
+      <PolicyModal />
     </>
   );
 }
