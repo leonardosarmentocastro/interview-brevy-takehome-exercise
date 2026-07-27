@@ -32,36 +32,45 @@ export function ResolvedDrawer({ analysis }: { analysis: AnalysisRecord }) {
           <span className="am">{analysis.amountText}</span>
         </div>
         <div className="dsec">What the agent decided</div>
-        <div className="rec">
-          <div className="lead">{analysis.rec.lead}</div>
-          <div className="bc">
+        <div className="mb-1.5 rounded-[10px] border border-ok/32 bg-ok/8 px-[14px] py-3">
+          <div className="font-mono text-[13px] font-bold tracking-[0.2px] text-ok">
+            {analysis.rec.lead}
+          </div>
+          <div className="mt-[7px] text-[13px] leading-normal text-tx2 [&_b]:text-tx">
             {/* Fixtures are trusted authored HTML (may contain <b>). */}
             <span dangerouslySetInnerHTML={{ __html: analysis.rec.because }} />{" "}
             See <PolicyLink line={analysis.rec.ref} />.
           </div>
         </div>
         <div className="dsec">How it got there</div>
-        <div className="tl">
+        <div className="ml-1.5 mt-1.5">
           {analysis.trace.map((c) => (
-            <div key={`${c.src}-${c.rule}`} className="step">
-              <div className="dot" />
-              <div className="shead">
+            <div
+              key={`${c.src}-${c.rule}`}
+              className="relative border-l-2 border-line pb-4 pl-[22px] last:border-l-transparent last:pb-0"
+            >
+              <div className="absolute -left-2 top-0.5 h-[14px] w-[14px] rounded-full border-2 border-ok bg-bg" />
+              <div className="mb-[7px] flex items-baseline gap-2.5">
                 <PolicyLink line={c.src} />
-                <span className="st">✓ {c.status}</span>
+                <span className="font-mono text-[11px] text-ok">
+                  ✓ {c.status}
+                </span>
               </div>
-              <div className="ln">
-                <span className="pfx">RULE</span>
-                <span className="val">{c.rule}</span>
+              <div className="flex gap-3 text-[12.5px] leading-normal">
+                <span className="w-[66px] shrink-0 text-tx3">RULE</span>
+                <span className="text-tx">{c.rule}</span>
               </div>
-              <div className="ln">
-                <span className="pfx">EVIDENCE</span>
-                <span className="val">{c.evidence}</span>
+              <div className="mt-1 flex gap-3 text-[12.5px] leading-normal">
+                <span className="w-[66px] shrink-0 text-tx3">EVIDENCE</span>
+                <span className="text-tx">{c.evidence}</span>
               </div>
             </div>
           ))}
-          <div className="step end">
-            <div className="dot" />
-            <div className="concl">{analysis.conclusion}</div>
+          <div className="relative border-l-2 border-transparent pl-[22px]">
+            <div className="absolute -left-[9px] top-0.5 h-4 w-4 rounded-full border-2 border-ok bg-ok" />
+            <div className="text-[13.5px] font-semibold text-ok">
+              {analysis.conclusion}
+            </div>
           </div>
         </div>
         <div className="dsec">Context</div>
