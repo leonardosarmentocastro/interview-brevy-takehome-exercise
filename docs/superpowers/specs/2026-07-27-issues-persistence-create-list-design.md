@@ -30,7 +30,7 @@ customer / transaction tables, the job queue, and the AI harness.
 | # | Decision | Rationale |
 |---|---|---|
 | 1 | **Hybrid schema**: typed core columns + one `metadata` jsonb column | Query/join on the fields that matter; keep the varying per-type tail flexible. `metadata` (not `payload`) names the intent: type-specific attributes about the issue. |
-| 2 | **One `issues` table + a `status` column** (default `pending`); **no** history/decisions/relation tables yet | "Start small — create and list." A `status` column gives later `?status=` filtering something real; history/decisions come with the queue that produces transitions. |
+| 2 | **One `issues` table + a `status` column** (default `pending`); **no** history/decisions/relation tables yet | "Start small — create and list." A `status` column gives later `?status=` filtering something real; history/decisions come with the queue that produces transitions. **The status *shape* is not final** — see the §4.1 note on reconciling it with per-layer UI states. |
 | 3 | **`id` = server-generated uuid PK; `external_id` = the source `iss_00x`** | Own the primary key; preserve the upstream id verbatim for tracing/idempotency. `external_id` (not `ref_id`) = "this record's id in the source system." |
 | 4 | **`external_id` is `UNIQUE`; duplicate → `409 Conflict`** | Natural idempotency key: re-seeding or a retried POST won't double-insert. Cheap version of the idempotency the queue will need. |
 | 5 | **Single `amount` column, normalized `amount ?? amount_due`; raw `amount_due` retained in `metadata`; `merchant` nullable** | One money column for caps/filtering (later $200 auto-execute ceiling); never lose a source fact; keep the option to redefine `amount` as a total (`amount_due × installments`) without having discarded the per-installment figure. `merchant` is absent on `missed_installment`. |
@@ -81,6 +81,18 @@ issues:
 
 Source time (`created_at`) and system time (`ingested_at`) are kept distinct.
 `GET /issues` orders by `ingested_at DESC`.
+
+> **⚠ Open question — deferred to its own brainstorming session.** The single
+> `status` enum here (`pending | processing | resolved | escalated`) is a
+> backend-lifecycle status. It will likely **clash with the UI's state model**,
+> which depends on *which layer of the pipeline* a ticket currently sits in —
+> virtual agent, operator, or specialist. Those layers each render different
+> states for the "same" ticket, so a flat backend status may not map cleanly to
+> what each board needs to show. **Do not treat this `status` set as final.**
+> Reconcile the backend status model against the per-layer UI states in a
+> dedicated brainstorm before the status-history / routing work lands. For this
+> slice `status` only ever holds `pending`, so nothing here depends on the final
+> shape.
 
 ### 4.2 `schema.ts` — validation + normalization
 
@@ -143,11 +155,17 @@ per house convention).
 
 ## 7. Seeding
 
-`apps/api/scripts/seed.ts` (or a `seed` package script) reads
-`docs/initial/payment_issues.json` and inserts the five issues through the same
-validation/normalization path (repository or HTTP), so the deliverable "accepts
-the 5 issues" is one command. Idempotent by virtue of `external_id` uniqueness.
-May land as the final task of this slice.
+`apps/api/scripts/seed.ts` (a `seed` package script) reads
+`docs/initial/payment_issues.json` and inserts the five issues **through the
+repository** (validating/normalizing via `createIssueSchema` first), so the
+deliverable "accepts the 5 issues" is one command. Idempotent by virtue of
+`external_id` uniqueness.
+
+**Repository, not HTTP** — from a production-release standpoint, seeding is a
+data-provisioning concern that should run without a live server (migrations +
+seed as a deploy step), so it goes straight through the repository. The HTTP
+ingestion path is reserved for the *next* concern: wiring real incoming payment
+transactions/issues in over the API. May land as the final task of this slice.
 
 ## 8. Data flow
 
