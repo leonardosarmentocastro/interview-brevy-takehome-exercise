@@ -71,3 +71,83 @@
   flex: none;
   opacity: 0.7;
 }
+
+.appbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: var(--color-col);
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+.appbar .ttl {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.appbar .eyebrow {
+  font: 9.5px var(--font-mono);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-tx3);
+}
+.appbar .ttl h2 {
+  margin: 1px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+.appbar .spacer {
+  flex: 1;
+}
+.idchip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 10px 5px 6px;
+  border: 1px solid var(--color-line);
+  border-radius: 99px;
+  background: var(--color-col2);
+  cursor: pointer;
+  transition: 0.12s;
+  font: inherit;
+  color: inherit;
+}
+.idchip:hover {
+  border-color: rgba(88, 166, 255, 0.5);
+  background: rgba(88, 166, 255, 0.08);
+}
+.idchip .ava {
+  width: 30px;
+  height: 30px;
+  border-radius: 99px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  background: rgba(88, 166, 255, 0.16);
+  border: 1px solid rgba(88, 166, 255, 0.5);
+  color: var(--color-info);
+  font: 700 10px var(--font-mono);
+  letter-spacing: 0.5px;
+}
+.idchip .who {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  text-align: left;
+}
+.idchip .who .r {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.idchip .who .h {
+  font: 9px var(--font-mono);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--color-tx3);
+}
+.idchip .car {
+  color: var(--color-tx3);
+  font-size: 11px;
+}
