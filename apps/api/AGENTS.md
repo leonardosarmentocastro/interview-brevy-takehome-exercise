@@ -89,6 +89,14 @@ export const getItemResolver = async (
   **HTTP** (the real contract) rather than internal functions.
 - Shared test infra (server bootstrap) lives in `test/` and is imported via the
   `@test/*` alias, e.g. `@test/helpers`.
+- **Every test starts from a pristine database.** DB-backed test files run
+  serially (`fileParallelism: false` in `vitest.config.ts`) so they never
+  contend on the shared `brevy_test` DB, and a global `beforeEach` in
+  `test/setup.ts` truncates the tables before *each* test. Assertions can
+  therefore assume an empty table (e.g. `GET /issues` returns exactly the rows
+  that test created). When you add a table, extend the truncate hook to cover
+  it. (This trades parallel throughput for isolation simplicity; parallel files
+  would require per-worker databases or per-test transactions instead.)
 - Cross-cutting server code (e.g. `server/middlewares/`) is tested where it is
   owned. When a behavior needs a route to exercise it, keep that scaffolding out
   of production routing: `createApp` accepts an optional `connectExtraRoutes`
