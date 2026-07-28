@@ -12,3 +12,15 @@ export class NotFoundError extends Error {
     this.name = "NotFoundError";
   }
 }
+
+/**
+ * Raised when a write violates a uniqueness invariant (e.g. inserting an issue
+ * whose `external_id` already exists). The HTTP error handler maps it to a
+ * `409 Conflict`.
+ */
+export class ConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConflictError";
+  }
+}

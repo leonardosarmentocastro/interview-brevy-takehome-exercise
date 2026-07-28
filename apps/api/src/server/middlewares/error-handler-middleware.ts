@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
-import { NotFoundError } from "@/db/data/errors";
+import { ConflictError, NotFoundError } from "@/db/data/errors";
 
 // `express.json()` throws a SyntaxError tagged `entity.parse.failed` when the
 // request body isn't valid JSON. That's a client mistake (400), not a server
@@ -22,6 +22,10 @@ export const errorHandlerMiddleware = (
   }
   if (err instanceof ZodError) {
     res.status(400).json({ error: "validation_error", issues: err.issues });
+    return;
+  }
+  if (err instanceof ConflictError) {
+    res.status(409).json({ error: err.message });
     return;
   }
   if (err instanceof NotFoundError) {

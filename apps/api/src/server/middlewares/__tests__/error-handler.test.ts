@@ -1,13 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Server } from "node:http";
 import { startServer, stopServer } from "@test/helpers";
+import { connectErrorHandlerRoutes } from "@test/connect-error-handler-routes";
 
 describe("error-handler middleware", () => {
   let server: Server;
   let base: string;
 
   beforeAll(async () => {
-    ({ server, base } = await startServer());
+    ({ server, base } = await startServer(connectErrorHandlerRoutes));
   });
   afterAll(async () => {
     await stopServer(server);
@@ -32,6 +33,12 @@ describe("error-handler middleware", () => {
   it("maps NotFoundError to 404", async () => {
     const res = await fetch(`${base}/test/middlewares/not-found`);
     expect(res.status).toBe(404);
+  });
+
+  it("maps ConflictError to 409", async () => {
+    const res = await fetch(`${base}/test/middlewares/conflict`);
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("resource already exists");
   });
 
   it("maps unexpected errors to 500", async () => {
