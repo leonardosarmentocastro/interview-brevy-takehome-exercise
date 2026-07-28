@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { issueStatus } from "@/modules/issues/model";
 
 const base = {
   id: z.string().min(1),
@@ -64,3 +65,16 @@ export const createIssueSchema = z.discriminatedUnion("type", [
 ]);
 
 export type CreateIssueInput = z.infer<typeof createIssueSchema>;
+
+// GET /issues?status=pending,processing — comma-separated, each value must be a
+// known status. Absent -> no filter; empty or unknown value -> ZodError (400).
+// Enum values are derived from the model so the two can't drift.
+export const listIssuesQuerySchema = z.object({
+  status: z
+    .string()
+    .transform((s) => s.split(","))
+    .pipe(z.array(z.enum(issueStatus.enumValues)).nonempty())
+    .optional(),
+});
+
+export type ListIssuesQuery = z.infer<typeof listIssuesQuerySchema>;
