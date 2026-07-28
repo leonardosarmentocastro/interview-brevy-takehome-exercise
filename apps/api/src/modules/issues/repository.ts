@@ -1,4 +1,5 @@
-import { desc, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/db/client";
 import { issues } from "@/modules/issues/model";
 import { ConflictError } from "@/db/data/errors";
@@ -31,5 +32,19 @@ export const issuesRepository = {
       .from(issues)
       .where(where)
       .orderBy(desc(issues.ingestedAt));
+  },
+
+  async findByIdOrExternalId(
+    idOrExternalId: string,
+  ): Promise<IssueRow | undefined> {
+    // A uuid-shaped param is our PK; anything else is the upstream external_id.
+    // We must branch BEFORE querying: comparing a non-uuid value against the
+    // uuid `id` column makes Postgres raise an invalid-input-syntax error.
+    const isUuid = z.uuid().safeParse(idOrExternalId).success;
+    const where = isUuid
+      ? eq(issues.id, idOrExternalId)
+      : eq(issues.externalId, idOrExternalId);
+    const [found] = await db.select().from(issues).where(where);
+    return found;
   },
 };
