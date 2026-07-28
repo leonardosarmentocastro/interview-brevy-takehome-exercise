@@ -6,7 +6,7 @@ services:
       POSTGRES_PASSWORD: brevy
       POSTGRES_DB: brevy
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - brevy_pg:/var/lib/postgresql/data
       - ./docker/initdb:/docker-entrypoint-initdb.d

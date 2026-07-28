@@ -8,6 +8,6 @@ export default defineConfig({
   dbCredentials: {
     url:
       process.env.DATABASE_URL ??
-      "postgres://brevy:brevy@localhost:5433/brevy",
+      "postgres://brevy:brevy@localhost:5432/brevy",
   },
 });
