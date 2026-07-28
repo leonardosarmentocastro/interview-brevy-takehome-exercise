@@ -41,4 +41,21 @@ describe("GET /issues/:id", () => {
     );
     expect(res.status).toBe(404);
   });
+
+  it("embeds the audit trail; a new issue's history starts at intake", async () => {
+    await postIssue(base, { ...declineBody, id: externalId });
+    const res = await fetch(`${base}/issues/${externalId}`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    expect(body.decisions).toEqual([]);
+    expect(body.status_history).toHaveLength(1);
+    expect(body.status_history[0].from_status).toBeNull();
+    expect(body.status_history[0].to_status).toBe("pending");
+    expect(body.status_history[0].actor).toBe("system");
+
+    expect(body.timeline).toHaveLength(1);
+    expect(body.timeline[0].kind).toBe("status");
+    expect(body.timeline[0].to_status).toBe("pending");
+  });
 });
