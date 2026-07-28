@@ -77,3 +77,81 @@ describe("POST /issues/:id/review (happy paths)", () => {
     expect((await res.json()).status).toBe("on_hold");
   });
 });
+
+describe("POST /issues/:id/review (guardrails)", () => {
+  let server: Server;
+  let base: string;
+  const externalId = "iss_001";
+  beforeAll(async () => {
+    ({ server, base } = await startServer());
+  });
+  afterAll(async () => {
+    await stopServer(server);
+  });
+
+  it("rejects a missing justification (400)", async () => {
+    await postIssue(base, { ...declineBody, id: externalId });
+    await setIssueStatus(externalId, "processing");
+    const res = await review(base, externalId, {
+      decision: "resolve",
+      reviewer: "agent_lee",
+    });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("validation_error");
+  });
+
+  it("returns 404 for an unknown issue", async () => {
+    const res = await review(base, "iss_999", {
+      decision: "resolve",
+      justification: "x",
+      reviewer: "agent_lee",
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 409 reviewing a pending issue (breaks automation)", async () => {
+    await postIssue(base, { ...declineBody, id: externalId });
+    const res = await review(base, externalId, {
+      decision: "resolve",
+      justification: "x",
+      reviewer: "agent_lee",
+    });
+    expect(res.status).toBe(409);
+  });
+
+  it("returns 409 reviewing a resolved (terminal) issue", async () => {
+    await postIssue(base, { ...declineBody, id: externalId });
+    await setIssueStatus(externalId, "resolved");
+    const res = await review(base, externalId, {
+      decision: "resolve",
+      justification: "x",
+      reviewer: "agent_lee",
+    });
+    expect(res.status).toBe(409);
+  });
+
+  it("returns 409 escalating an already-escalated issue", async () => {
+    await postIssue(base, { ...declineBody, id: externalId });
+    await setIssueStatus(externalId, "escalated");
+    const res = await review(base, externalId, {
+      decision: "escalate",
+      justification: "x",
+      reviewer: "agent_lee",
+    });
+    expect(res.status).toBe(409);
+  });
+
+  it("does not persist a decision or transition on a 409", async () => {
+    await postIssue(base, { ...declineBody, id: externalId });
+    await setIssueStatus(externalId, "resolved");
+    await review(base, externalId, {
+      decision: "resolve",
+      justification: "x",
+      reviewer: "agent_lee",
+    });
+    const detail = await (await fetch(`${base}/issues/${externalId}`)).json();
+    expect(detail.decisions).toEqual([]);
+    // only the intake row; the rejected review wrote nothing
+    expect(detail.status_history).toHaveLength(1);
+  });
+});
