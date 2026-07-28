@@ -1,3 +1,5 @@
+import { pool } from "@/db/client";
+
 export const declineBody = {
   id: "iss_001",
   type: "decline",
@@ -28,3 +30,11 @@ export const postIssue = (base: string, body: unknown) =>
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
+
+// Arrange a reviewable precondition. Issues are born `pending` (not reviewable);
+// in production the queue/agent moves them on. Tests set the status directly.
+export const setIssueStatus = (externalId: string, status: string) =>
+  pool.query("UPDATE issues SET status = $1 WHERE external_id = $2", [
+    status,
+    externalId,
+  ]);

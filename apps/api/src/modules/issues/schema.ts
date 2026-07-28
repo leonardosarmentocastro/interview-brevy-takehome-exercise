@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { issueStatus } from "@/modules/issues/model";
+import { REVIEW_DECISIONS } from "@/modules/issues/state-machine";
 
 const base = {
   id: z.string().min(1),
@@ -78,3 +79,13 @@ export const listIssuesQuerySchema = z.object({
 });
 
 export type ListIssuesQuery = z.infer<typeof listIssuesQuerySchema>;
+
+// POST /issues/:id/review body. `decision` enum is derived from the state
+// machine's tuple so the two can't drift.
+export const reviewIssueSchema = z.object({
+  decision: z.enum(REVIEW_DECISIONS),
+  justification: z.string().min(1),
+  reviewer: z.string().min(1),
+});
+
+export type ReviewIssueInput = z.infer<typeof reviewIssueSchema>;

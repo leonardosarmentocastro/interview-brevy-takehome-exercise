@@ -9,6 +9,7 @@ import {
 import { ConflictError } from "@/db/data/errors";
 import { isUniqueViolation } from "@/db/data/pg-errors";
 import type { NewIssueRow } from "@/modules/issues/normalizer";
+import type { ReviewDecision } from "@/modules/issues/state-machine";
 import type {
   IssueRow,
   IssueStatus,
@@ -79,5 +80,44 @@ export const issuesRepository = {
       .from(issueDecisions)
       .where(eq(issueDecisions.issueId, issueId))
       .orderBy(asc(issueDecisions.at));
+  },
+
+  // Atomic human review: write the decision, the status-history row (linked to
+  // that decision), and flip the issue's status — all or nothing.
+  async recordReview(
+    issueId: string,
+    params: {
+      decision: ReviewDecision;
+      target: IssueStatus;
+      justification: string;
+      reviewer: string;
+      fromStatus: IssueStatus;
+    },
+  ): Promise<IssueRow> {
+    return db.transaction(async (tx) => {
+      const [decision] = await tx
+        .insert(issueDecisions)
+        .values({
+          issueId,
+          actor: "human",
+          decision: params.decision,
+          justification: params.justification,
+          decidedBy: params.reviewer,
+        })
+        .returning();
+      await tx.insert(issueStatusHistory).values({
+        issueId,
+        fromStatus: params.fromStatus,
+        toStatus: params.target,
+        actor: "human",
+        decisionId: decision.id,
+      });
+      const [updated] = await tx
+        .update(issues)
+        .set({ status: params.target })
+        .where(eq(issues.id, issueId))
+        .returning();
+      return updated;
+    });
   },
 };
