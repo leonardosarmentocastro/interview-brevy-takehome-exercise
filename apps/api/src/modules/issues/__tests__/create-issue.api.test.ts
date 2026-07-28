@@ -32,9 +32,16 @@ describe("POST /issues", () => {
     expect((await res.json()).error).toBe("validation_error");
   });
 
-  it("rejects a duplicate external_id (409)", async () => {
-    await postIssue(base, declineBody);
+  it("rejects a duplicate external_id (409) without creating a second row", async () => {
+    const first = await postIssue(base, declineBody);
+    expect(first.status).toBe(201);
+
     const res = await postIssue(base, declineBody);
     expect(res.status).toBe(409);
+
+    // The conflict must leave persisted state untouched: still exactly one row.
+    const list = await (await fetch(`${base}/issues`)).json();
+    expect(list).toHaveLength(1);
+    expect(list[0].externalId).toBe("iss_001");
   });
 });
