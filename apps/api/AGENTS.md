@@ -90,8 +90,12 @@ export const getItemResolver = async (
 - Shared test infra (server bootstrap) lives in `test/` and is imported via the
   `@test/*` alias, e.g. `@test/helpers`.
 - Cross-cutting server code (e.g. `server/middlewares/`) is tested where it is
-  owned. When a behavior needs a route to exercise it, add a **test-only** router
-  inline in `server/routes/connect.ts`, mounted only when `NODE_ENV === "test"`.
+  owned. When a behavior needs a route to exercise it, keep that scaffolding out
+  of production routing: `createApp` accepts an optional `registerExtraRoutes`
+  seam (mounted after the real routes, before the error handler), and the
+  test-only router lives under `test/` (e.g. `test/error-branch-routes.ts`).
+  Pass it explicitly via `startServer(registerExtraRoutes)` from the test that
+  needs it, so `server/routes/connect.ts` stays purely production routing.
 
 ## Adding a new module (checklist)
 

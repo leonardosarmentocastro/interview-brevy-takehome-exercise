@@ -1,13 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Server } from "node:http";
 import { startServer, stopServer } from "@test/helpers";
+import { registerErrorBranchRoutes } from "@test/error-branch-routes";
 
 describe("error-handler middleware", () => {
   let server: Server;
   let base: string;
 
   beforeAll(async () => {
-    ({ server, base } = await startServer());
+    ({ server, base } = await startServer(registerErrorBranchRoutes));
   });
   afterAll(async () => {
     await stopServer(server);
