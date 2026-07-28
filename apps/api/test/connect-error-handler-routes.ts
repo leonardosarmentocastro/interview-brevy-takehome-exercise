@@ -8,7 +8,7 @@ import { ConflictError, NotFoundError } from "@/db/data/errors";
  * (server/middlewares) instead of through an unrelated domain module. Injected
  * into `createApp` from the test harness, never mounted in production.
  */
-export const registerErrorBranchRoutes = (app: Express): void => {
+export const connectErrorHandlerRoutes = (app: Express): void => {
   const router = Router();
 
   // Accepts a POST so a malformed body makes express.json() throw before the

@@ -91,10 +91,10 @@ export const getItemResolver = async (
   `@test/*` alias, e.g. `@test/helpers`.
 - Cross-cutting server code (e.g. `server/middlewares/`) is tested where it is
   owned. When a behavior needs a route to exercise it, keep that scaffolding out
-  of production routing: `createApp` accepts an optional `registerExtraRoutes`
+  of production routing: `createApp` accepts an optional `connectExtraRoutes`
   seam (mounted after the real routes, before the error handler), and the
-  test-only router lives under `test/` (e.g. `test/error-branch-routes.ts`).
-  Pass it explicitly via `startServer(registerExtraRoutes)` from the test that
+  test-only router lives under `test/` (e.g. `test/connect-error-handler-routes.ts`).
+  Pass it explicitly via `startServer(connectExtraRoutes)` from the test that
   needs it, so `server/routes/connect.ts` stays purely production routing.
 
 ## Adding a new module (checklist)
