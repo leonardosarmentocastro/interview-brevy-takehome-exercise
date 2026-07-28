@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import { createIssueSchema, toIssueRow } from "@/modules/issues/schema";
+import { createIssueSchema } from "@/modules/issues/schema";
+import { toIssueRow } from "@/modules/issues/normalizer";
 import { issuesRepository } from "@/modules/issues/repository";
 
 export const createIssueResolver = async (

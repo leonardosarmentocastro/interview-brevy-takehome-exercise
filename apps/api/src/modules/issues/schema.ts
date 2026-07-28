@@ -7,8 +7,8 @@ const base = {
   created_at: z.string().min(1),
 };
 
-// `.passthrough()` keeps unknown keys so a not-yet-modeled field still flows
-// into `metadata` instead of being rejected (non-strict branches).
+// `.loose()` keeps unknown keys so a not-yet-modeled field still flows into
+// `metadata` instead of being rejected (non-strict branches).
 const decline = z
   .object({
     ...base,
@@ -19,7 +19,7 @@ const decline = z
     auto_retry_count: z.number().optional(),
     is_recurring: z.boolean().optional(),
   })
-  .passthrough();
+  .loose();
 
 const missedInstallment = z
   .object({
@@ -30,7 +30,7 @@ const missedInstallment = z
     installments_total: z.number(),
     days_overdue: z.number(),
   })
-  .passthrough();
+  .loose();
 
 const dispute = z
   .object({
@@ -41,7 +41,7 @@ const dispute = z
     reason: z.string().min(1),
     days_since_purchase: z.number(),
   })
-  .passthrough();
+  .loose();
 
 const refundRequest = z
   .object({
@@ -54,7 +54,7 @@ const refundRequest = z
     installment_plan: z.boolean().optional(),
     installments_paid: z.number().optional(),
   })
-  .passthrough();
+  .loose();
 
 export const createIssueSchema = z.discriminatedUnion("type", [
   decline,
@@ -64,50 +64,3 @@ export const createIssueSchema = z.discriminatedUnion("type", [
 ]);
 
 export type CreateIssueInput = z.infer<typeof createIssueSchema>;
-
-export type NewIssueRow = {
-  externalId: string;
-  type: CreateIssueInput["type"];
-  customerId: string;
-  transactionId: string;
-  amount: number;
-  merchant: string | null;
-  metadata: Record<string, unknown>;
-  createdAt: Date;
-};
-
-// Keys that map to typed columns; everything else is the type-specific tail.
-const COLUMN_KEYS = new Set([
-  "id",
-  "type",
-  "customer_id",
-  "transaction_id",
-  "amount",
-  "merchant",
-  "created_at",
-]);
-
-export const toIssueRow = (input: CreateIssueInput): NewIssueRow => {
-  const raw = input as Record<string, unknown>;
-
-  const metadata: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(raw)) {
-    // amount_due is intentionally NOT a column, so it stays in metadata.
-    if (!COLUMN_KEYS.has(key)) metadata[key] = value;
-  }
-
-  const amount =
-    typeof raw.amount === "number" ? raw.amount : (raw.amount_due as number);
-  const merchant = typeof raw.merchant === "string" ? raw.merchant : null;
-
-  return {
-    externalId: input.id,
-    type: input.type,
-    customerId: input.customer_id,
-    transactionId: input.transaction_id,
-    amount,
-    merchant,
-    metadata,
-    createdAt: new Date(input.created_at),
-  };
-};

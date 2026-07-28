@@ -1,7 +1,8 @@
 import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { createIssueSchema, toIssueRow } from "@/modules/issues/schema";
+import { createIssueSchema } from "@/modules/issues/schema";
+import { toIssueRow } from "@/modules/issues/normalizer";
 import { issuesRepository } from "@/modules/issues/repository";
 import { ConflictError } from "@/db/data/errors";
 import { pool } from "@/db/client";

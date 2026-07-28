@@ -2,7 +2,7 @@ import { desc } from "drizzle-orm";
 import { db } from "@/db/client";
 import { issues } from "@/modules/issues/model";
 import { ConflictError } from "@/db/data/errors";
-import type { NewIssueRow } from "@/modules/issues/schema";
+import type { NewIssueRow } from "@/modules/issues/normalizer";
 import type { IssueRow } from "@/modules/issues/types";
 
 const UNIQUE_VIOLATION = "23505"; // Postgres error code for unique constraint
