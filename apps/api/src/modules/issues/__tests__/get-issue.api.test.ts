@@ -6,6 +6,7 @@ import { declineBody, postIssue } from "./fixtures";
 describe("GET /issues/:id", () => {
   let server: Server;
   let base: string;
+  const externalId = "iss_001";
   beforeAll(async () => {
     ({ server, base } = await startServer());
   });
@@ -14,17 +15,19 @@ describe("GET /issues/:id", () => {
   });
 
   it("fetches an issue by its uuid (200)", async () => {
-    const created = await (await postIssue(base, declineBody)).json();
+    const created = await (
+      await postIssue(base, { ...declineBody, id: externalId })
+    ).json();
     const res = await fetch(`${base}/issues/${created.id}`);
     expect(res.status).toBe(200);
-    expect((await res.json()).externalId).toBe("iss_001");
+    expect((await res.json()).externalId).toBe(externalId);
   });
 
   it("fetches an issue by its external_id (200)", async () => {
-    await postIssue(base, declineBody); // external_id iss_001
-    const res = await fetch(`${base}/issues/iss_001`);
+    await postIssue(base, { ...declineBody, id: externalId });
+    const res = await fetch(`${base}/issues/${externalId}`);
     expect(res.status).toBe(200);
-    expect((await res.json()).externalId).toBe("iss_001");
+    expect((await res.json()).externalId).toBe(externalId);
   });
 
   it("returns 404 for an unknown external_id", async () => {

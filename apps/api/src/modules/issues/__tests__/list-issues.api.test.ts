@@ -9,6 +9,8 @@ import { issues } from "@/modules/issues/model";
 describe("GET /issues", () => {
   let server: Server;
   let base: string;
+  const declineId = "iss_001";
+  const missedId = "iss_002";
   beforeAll(async () => {
     ({ server, base } = await startServer());
   });
@@ -23,33 +25,33 @@ describe("GET /issues", () => {
   });
 
   it("lists issues newest-first by ingestion order", async () => {
-    await postIssue(base, declineBody); // iss_001 first
-    await postIssue(base, missedInstallmentBody); // iss_002 second
+    await postIssue(base, { ...declineBody, id: declineId }); // first
+    await postIssue(base, { ...missedInstallmentBody, id: missedId }); // second
     const list = await (await fetch(`${base}/issues`)).json();
     expect(list).toHaveLength(2);
-    expect(list[0].externalId).toBe("iss_002"); // most recently ingested first
-    expect(list[1].externalId).toBe("iss_001");
+    expect(list[0].externalId).toBe(missedId); // most recently ingested first
+    expect(list[1].externalId).toBe(declineId);
   });
 
   it("filters by a single status", async () => {
-    await postIssue(base, declineBody); // iss_001, defaults to `pending`
+    await postIssue(base, { ...declineBody, id: declineId }); // defaults to `pending`
     const resolved = await (
       await fetch(`${base}/issues?status=resolved`)
     ).json();
     expect(resolved).toEqual([]);
     const pending = await (await fetch(`${base}/issues?status=pending`)).json();
     expect(pending).toHaveLength(1);
-    expect(pending[0].externalId).toBe("iss_001");
+    expect(pending[0].externalId).toBe(declineId);
   });
 
   it("filters by comma-separated statuses (union)", async () => {
-    await postIssue(base, declineBody); // iss_001, pending
-    await postIssue(base, missedInstallmentBody); // iss_002, pending
+    await postIssue(base, { ...declineBody, id: declineId }); // pending
+    await postIssue(base, { ...missedInstallmentBody, id: missedId }); // pending
     // Arrange only: no HTTP path sets status yet, so flip one row directly.
     await db
       .update(issues)
       .set({ status: "processing" })
-      .where(eq(issues.externalId, "iss_002"));
+      .where(eq(issues.externalId, missedId));
 
     const both = await (
       await fetch(`${base}/issues?status=pending,processing`)
@@ -60,7 +62,7 @@ describe("GET /issues", () => {
       await fetch(`${base}/issues?status=processing`)
     ).json();
     expect(onlyProcessing.map((i: { externalId: string }) => i.externalId)).toEqual([
-      "iss_002",
+      missedId,
     ]);
   });
 
