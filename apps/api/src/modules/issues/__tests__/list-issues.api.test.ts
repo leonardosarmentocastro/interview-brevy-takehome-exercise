@@ -2,6 +2,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Server } from "node:http";
 import { startServer, stopServer } from "@test/helpers";
 import { declineBody, missedInstallmentBody, postIssue } from "./fixtures";
+import { eq } from "drizzle-orm";
+import { db } from "@/db/client";
+import { issues } from "@/modules/issues/model";
 
 describe("GET /issues", () => {
   let server: Server;
@@ -26,5 +29,43 @@ describe("GET /issues", () => {
     expect(list).toHaveLength(2);
     expect(list[0].externalId).toBe("iss_002"); // most recently ingested first
     expect(list[1].externalId).toBe("iss_001");
+  });
+
+  it("filters by a single status", async () => {
+    await postIssue(base, declineBody); // iss_001, defaults to `pending`
+    const resolved = await (
+      await fetch(`${base}/issues?status=resolved`)
+    ).json();
+    expect(resolved).toEqual([]);
+    const pending = await (await fetch(`${base}/issues?status=pending`)).json();
+    expect(pending).toHaveLength(1);
+    expect(pending[0].externalId).toBe("iss_001");
+  });
+
+  it("filters by comma-separated statuses (union)", async () => {
+    await postIssue(base, declineBody); // iss_001, pending
+    await postIssue(base, missedInstallmentBody); // iss_002, pending
+    // Arrange only: no HTTP path sets status yet, so flip one row directly.
+    await db
+      .update(issues)
+      .set({ status: "processing" })
+      .where(eq(issues.externalId, "iss_002"));
+
+    const both = await (
+      await fetch(`${base}/issues?status=pending,processing`)
+    ).json();
+    expect(both).toHaveLength(2);
+
+    const onlyProcessing = await (
+      await fetch(`${base}/issues?status=processing`)
+    ).json();
+    expect(onlyProcessing.map((i: { externalId: string }) => i.externalId)).toEqual([
+      "iss_002",
+    ]);
+  });
+
+  it("rejects an unknown status value (400)", async () => {
+    const res = await fetch(`${base}/issues?status=banana`);
+    expect(res.status).toBe(400);
   });
 });
