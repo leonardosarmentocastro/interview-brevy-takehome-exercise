@@ -6,8 +6,8 @@ export type TimelineEntry = {
   kind: "status" | "decision";
   at: Date;
   actor: string;
-  from_status?: StatusHistoryRow["fromStatus"];
-  to_status?: StatusHistoryRow["toStatus"];
+  fromStatus?: StatusHistoryRow["fromStatus"];
+  toStatus?: StatusHistoryRow["toStatus"];
   decision?: string;
   justification?: string;
 };
@@ -21,8 +21,8 @@ export const mergeTimeline = (
       kind: "status" as const,
       at: h.at,
       actor: h.actor,
-      from_status: h.fromStatus,
-      to_status: h.toStatus,
+      fromStatus: h.fromStatus,
+      toStatus: h.toStatus,
     })),
     ...decisions.map((d) => ({
       kind: "decision" as const,

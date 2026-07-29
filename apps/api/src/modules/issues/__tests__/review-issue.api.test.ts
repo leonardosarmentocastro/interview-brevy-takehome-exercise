@@ -40,17 +40,17 @@ describe("POST /issues/:id/review (happy paths)", () => {
       actor: "human",
       decision: "resolve",
       justification: "retry succeeded",
-      decided_by: "agent_lee",
+      decidedBy: "agent_lee",
     });
     // intake row + the review transition row
-    expect(detail.status_history).toHaveLength(2);
-    const transition = detail.status_history[1];
+    expect(detail.statusHistory).toHaveLength(2);
+    const transition = detail.statusHistory[1];
     expect(transition).toMatchObject({
-      from_status: "processing",
-      to_status: "resolved",
+      fromStatus: "processing",
+      toStatus: "resolved",
       actor: "human",
     });
-    expect(transition.decision_id).toBe(detail.decisions[0].id);
+    expect(transition.decisionId).toBe(detail.decisions[0].id);
   });
 
   it("escalate: processing -> escalated", async () => {
@@ -152,6 +152,6 @@ describe("POST /issues/:id/review (guardrails)", () => {
     const detail = await (await fetch(`${base}/issues/${externalId}`)).json();
     expect(detail.decisions).toEqual([]);
     // only the intake row; the rejected review wrote nothing
-    expect(detail.status_history).toHaveLength(1);
+    expect(detail.statusHistory).toHaveLength(1);
   });
 });

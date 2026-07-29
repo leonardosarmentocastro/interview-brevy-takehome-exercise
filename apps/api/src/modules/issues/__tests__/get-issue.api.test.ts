@@ -49,13 +49,13 @@ describe("GET /issues/:id", () => {
     const body = await res.json();
 
     expect(body.decisions).toEqual([]);
-    expect(body.status_history).toHaveLength(1);
-    expect(body.status_history[0].from_status).toBeNull();
-    expect(body.status_history[0].to_status).toBe("pending");
-    expect(body.status_history[0].actor).toBe("system");
+    expect(body.statusHistory).toHaveLength(1);
+    expect(body.statusHistory[0].fromStatus).toBeNull();
+    expect(body.statusHistory[0].toStatus).toBe("pending");
+    expect(body.statusHistory[0].actor).toBe("system");
 
     expect(body.timeline).toHaveLength(1);
     expect(body.timeline[0].kind).toBe("status");
-    expect(body.timeline[0].to_status).toBe("pending");
+    expect(body.timeline[0].toStatus).toBe("pending");
   });
 });
