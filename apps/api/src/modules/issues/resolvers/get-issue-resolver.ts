@@ -1,6 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
 import { issuesRepository } from "@/modules/issues/repository";
-import { mergeTimeline } from "@/modules/issues/timeline";
 import { NotFoundError } from "@/db/data/errors";
 
 // Drizzle returns rows keyed by the model's camelCase property names, and that
@@ -14,16 +13,8 @@ export const getIssueResolver = async (
   try {
     const issue = await issuesRepository.findByIdOrExternalId(req.params.id);
     if (!issue) throw new NotFoundError(`issue ${req.params.id} not found`);
-    const [statusHistory, decisions] = await Promise.all([
-      issuesRepository.listStatusHistory(issue.id),
-      issuesRepository.listDecisions(issue.id),
-    ]);
-    res.status(200).json({
-      ...issue,
-      statusHistory,
-      decisions,
-      timeline: mergeTimeline(statusHistory, decisions),
-    });
+    const auditTrail = await issuesRepository.getAuditTrail(issue.id);
+    res.status(200).json({ ...issue, ...auditTrail });
   } catch (err) {
     next(err);
   }

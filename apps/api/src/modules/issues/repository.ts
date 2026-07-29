@@ -10,12 +10,20 @@ import { ConflictError } from "@/db/data/errors";
 import { isUniqueViolation } from "@/db/data/pg-errors";
 import type { NewIssueRow } from "@/modules/issues/normalizer";
 import type { ReviewDecision } from "@/modules/issues/state-machine";
+import { mergeTimeline } from "@/modules/issues/timeline";
+import type { TimelineEntry } from "@/modules/issues/timeline";
 import type {
   IssueRow,
   IssueStatus,
   DecisionRow,
   StatusHistoryRow,
 } from "@/modules/issues/types";
+
+export type AuditTrail = {
+  statusHistory: StatusHistoryRow[];
+  decisions: DecisionRow[];
+  timeline: TimelineEntry[];
+};
 
 export const issuesRepository = {
   async create(row: NewIssueRow): Promise<IssueRow> {
@@ -66,20 +74,28 @@ export const issuesRepository = {
     return found;
   },
 
-  async listStatusHistory(issueId: string): Promise<StatusHistoryRow[]> {
-    return db
-      .select()
-      .from(issueStatusHistory)
-      .where(eq(issueStatusHistory.issueId, issueId))
-      .orderBy(asc(issueStatusHistory.at));
-  },
-
-  async listDecisions(issueId: string): Promise<DecisionRow[]> {
-    return db
-      .select()
-      .from(issueDecisions)
-      .where(eq(issueDecisions.issueId, issueId))
-      .orderBy(asc(issueDecisions.at));
+  // The full read-side audit trail for an issue: the raw status-history and
+  // decision rows plus the derived chronological timeline. Kept in one method
+  // so any caller (get-issue today, a list view tomorrow) assembles it the
+  // same way instead of re-orchestrating the two queries + merge.
+  async getAuditTrail(issueId: string): Promise<AuditTrail> {
+    const [statusHistory, decisions] = await Promise.all([
+      db
+        .select()
+        .from(issueStatusHistory)
+        .where(eq(issueStatusHistory.issueId, issueId))
+        .orderBy(asc(issueStatusHistory.at)),
+      db
+        .select()
+        .from(issueDecisions)
+        .where(eq(issueDecisions.issueId, issueId))
+        .orderBy(asc(issueDecisions.at)),
+    ]);
+    return {
+      statusHistory,
+      decisions,
+      timeline: mergeTimeline(statusHistory, decisions),
+    };
   },
 
   // Atomic human review: write the decision, the status-history row (linked to
