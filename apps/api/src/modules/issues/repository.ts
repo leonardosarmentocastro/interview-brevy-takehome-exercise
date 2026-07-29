@@ -1,17 +1,43 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db/client";
-import { issues } from "@/modules/issues/model";
+import {
+  issues,
+  issueDecisions,
+  issueStatusHistory,
+} from "@/modules/issues/model";
 import { ConflictError } from "@/db/data/errors";
 import { isUniqueViolation } from "@/db/data/pg-errors";
 import type { NewIssueRow } from "@/modules/issues/normalizer";
-import type { IssueRow, IssueStatus } from "@/modules/issues/types";
+import type { ReviewDecision } from "@/modules/issues/state-machine";
+import { mergeTimeline } from "@/modules/issues/timeline";
+import type { TimelineEntry } from "@/modules/issues/timeline";
+import type {
+  IssueRow,
+  IssueStatus,
+  DecisionRow,
+  StatusHistoryRow,
+} from "@/modules/issues/types";
+
+export type AuditTrail = {
+  statusHistory: StatusHistoryRow[];
+  decisions: DecisionRow[];
+  timeline: TimelineEntry[];
+};
 
 export const issuesRepository = {
   async create(row: NewIssueRow): Promise<IssueRow> {
     try {
-      const [created] = await db.insert(issues).values(row).returning();
-      return created;
+      return await db.transaction(async (tx) => {
+        const [created] = await tx.insert(issues).values(row).returning();
+        await tx.insert(issueStatusHistory).values({
+          issueId: created.id,
+          fromStatus: null,
+          toStatus: "pending",
+          actor: "system",
+        });
+        return created;
+      });
     } catch (err) {
       if (isUniqueViolation(err)) {
         throw new ConflictError(
@@ -46,5 +72,68 @@ export const issuesRepository = {
       : eq(issues.externalId, idOrExternalId);
     const [found] = await db.select().from(issues).where(where);
     return found;
+  },
+
+  // The full read-side audit trail for an issue: the raw status-history and
+  // decision rows plus the derived chronological timeline. Kept in one method
+  // so any caller (get-issue today, a list view tomorrow) assembles it the
+  // same way instead of re-orchestrating the two queries + merge.
+  async getAuditTrail(issueId: string): Promise<AuditTrail> {
+    const [statusHistory, decisions] = await Promise.all([
+      db
+        .select()
+        .from(issueStatusHistory)
+        .where(eq(issueStatusHistory.issueId, issueId))
+        .orderBy(asc(issueStatusHistory.at)),
+      db
+        .select()
+        .from(issueDecisions)
+        .where(eq(issueDecisions.issueId, issueId))
+        .orderBy(asc(issueDecisions.at)),
+    ]);
+    return {
+      statusHistory,
+      decisions,
+      timeline: mergeTimeline(statusHistory, decisions),
+    };
+  },
+
+  // Atomic human review: write the decision, the status-history row (linked to
+  // that decision), and flip the issue's status — all or nothing.
+  async recordReview(
+    issueId: string,
+    params: {
+      decision: ReviewDecision;
+      target: IssueStatus;
+      justification: string;
+      reviewer: string;
+      fromStatus: IssueStatus;
+    },
+  ): Promise<IssueRow> {
+    return db.transaction(async (tx) => {
+      const [decision] = await tx
+        .insert(issueDecisions)
+        .values({
+          issueId,
+          actor: "human",
+          decision: params.decision,
+          justification: params.justification,
+          decidedBy: params.reviewer,
+        })
+        .returning();
+      await tx.insert(issueStatusHistory).values({
+        issueId,
+        fromStatus: params.fromStatus,
+        toStatus: params.target,
+        actor: "human",
+        decisionId: decision.id,
+      });
+      const [updated] = await tx
+        .update(issues)
+        .set({ status: params.target })
+        .where(eq(issues.id, issueId))
+        .returning();
+      return updated;
+    });
   },
 };
