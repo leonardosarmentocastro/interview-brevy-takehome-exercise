@@ -43,7 +43,7 @@ The agent reads `policies.md` at runtime and `verify.ts` re-reads cited lines, s
 - Consumes: nothing.
 - Produces: `findCustomer(id: string): CustomerRecord | undefined`, `findTransaction(id: string): TransactionRecord | undefined`, `policyLine(n: number): string | undefined`, `policyLineCount: number`, `policyPath: string`, types `CustomerRecord`, `TransactionRecord`.
 
-- [ ] **Step 1: Move the three files with git**
+- [x] **Step 1: Move the three files with git**
 
 ```bash
 mkdir -p apps/api/src/modules/issues/ai/data
@@ -52,7 +52,7 @@ git mv docs/initial/customers.json apps/api/src/modules/issues/ai/data/customers
 git mv docs/initial/transactions.json apps/api/src/modules/issues/ai/data/transactions.json
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Create `apps/api/src/modules/issues/ai/data/__tests__/records.test.ts`:
 
@@ -89,12 +89,12 @@ describe("records", () => {
 });
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run: `npx vitest run src/modules/issues/ai/data/__tests__/records.test.ts`
 Expected: FAIL — cannot resolve `@/modules/issues/ai/data/records`
 
-- [ ] **Step 4: Write the implementation**
+- [x] **Step 4: Write the implementation**
 
 Create `apps/api/src/modules/issues/ai/data/records.ts`:
 
@@ -145,12 +145,12 @@ export const policyLineCount = policyLines.length;
 export const policyLine = (n: number): string | undefined => policyLines[n - 1];
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run src/modules/issues/ai/data/__tests__/records.test.ts`
 Expected: PASS — 4 tests
 
-- [ ] **Step 6: Update the historical README**
+- [x] **Step 6: Update the historical README**
 
 In `docs/initial/README.md`, replace the `customers.json` and `transactions.json` table rows with a single note after the table:
 
@@ -164,12 +164,12 @@ In `docs/initial/README.md`, replace the `customers.json` and `transactions.json
 
 Delete the two table rows for those files.
 
-- [ ] **Step 7: Verify nothing else referenced the old paths**
+- [x] **Step 7: Verify nothing else referenced the old paths**
 
 Run: `grep -rn "docs/initial/customers\|docs/initial/transactions\|\.\./\.\./policies\.md" --include='*.ts' --include='*.tsx' apps/ | grep -v node_modules`
 Expected: no output
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add -A
