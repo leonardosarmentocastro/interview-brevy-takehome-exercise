@@ -1,6 +1,6 @@
 import "dotenv/config";
-import { ingestIssue } from "@/modules/issues/ingest";
-import { fetchIssues } from "@/modules/issues/sources/file-source";
+import { ingestIssue } from "@/modules/issues/ingestion/ingest";
+import { fetchIssues } from "@/modules/issues/ingestion/sources/file-source";
 import { pool } from "@/db/client";
 
 /**

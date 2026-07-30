@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { createIssueSchema } from "@/modules/issues/schema";
-import { ingestIssue } from "@/modules/issues/ingest";
+import { ingestIssue } from "@/modules/issues/ingestion/ingest";
 import { ConflictError } from "@/db/data/errors";
 
 export const createIssueResolver = async (

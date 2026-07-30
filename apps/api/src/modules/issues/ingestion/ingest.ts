@@ -1,5 +1,5 @@
 import { db } from "@/db/client";
-import { toIssueRow } from "@/modules/issues/normalizer";
+import { toIssueRow } from "@/modules/issues/ingestion/normalizer";
 import { issuesRepository } from "@/modules/issues/repository";
 import type { CreateIssueInput } from "@/modules/issues/schema";
 import type { IssueRow } from "@/modules/issues/types";

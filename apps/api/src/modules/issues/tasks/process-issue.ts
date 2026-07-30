@@ -1,4 +1,4 @@
-import { decide } from "@/modules/issues/decide";
+import { decide } from "@/modules/issues/ai/decide";
 import { issuesRepository } from "@/modules/issues/repository";
 import type { IssueStatus } from "@/modules/issues/types";
 import { isRetryable, MAX_ATTEMPTS } from "@/queue/retry-policy";

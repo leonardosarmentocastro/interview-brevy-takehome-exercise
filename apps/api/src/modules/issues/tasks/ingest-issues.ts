@@ -1,5 +1,5 @@
-import { ingestIssue } from "@/modules/issues/ingest";
-import { fetchIssues } from "@/modules/issues/sources/file-source";
+import { ingestIssue } from "@/modules/issues/ingestion/ingest";
+import { fetchIssues } from "@/modules/issues/ingestion/sources/file-source";
 
 /**
  * The scheduled pull from the upstream system. Each new issue is inserted and

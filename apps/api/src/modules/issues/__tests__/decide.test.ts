@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { decide } from "@/modules/issues/decide";
+import { decide } from "@/modules/issues/ai/decide";
 import { RetryableError, TerminalError } from "@/queue/retry-policy";
 import type { IssueRow } from "@/modules/issues/types";
 

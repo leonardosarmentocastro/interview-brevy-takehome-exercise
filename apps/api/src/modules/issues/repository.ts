@@ -6,7 +6,7 @@ import {
   issueDecisions,
   issueStatusHistory,
 } from "@/modules/issues/model";
-import type { NewIssueRow } from "@/modules/issues/normalizer";
+import type { NewIssueRow } from "@/modules/issues/ingestion/normalizer";
 import type { ReviewDecision } from "@/modules/issues/state-machine";
 import { mergeTimeline } from "@/modules/issues/timeline";
 import type { TimelineEntry } from "@/modules/issues/timeline";
@@ -29,9 +29,9 @@ export const issuesRepository = {
    * intake transition. Returns `null` when the issue was already present.
    *
    * Takes a caller-supplied transaction so the insert and the job enqueue
-   * commit together — see `modules/issues/ingest.ts`. Unlike `create`, a
-   * duplicate is not an error here: re-reading the same upstream feed is the
-   * normal case, not a fault.
+   * commit together — see `modules/issues/ingestion/ingest.ts`. Unlike
+   * `create`, a duplicate is not an error here: re-reading the same upstream
+   * feed is the normal case, not a fault.
    */
   async insertIfNew(tx: Tx, row: NewIssueRow): Promise<IssueRow | null> {
     const [created] = await tx

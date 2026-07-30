@@ -49,9 +49,9 @@ Two processes, one database.
 ## How one issue travels the system
 
 1. **Cron pulls the feed** — `apps/api/src/modules/issues/tasks/ingest-issues.ts`
-   reads `docs/initial/payment_issues.json` via the file source and calls
+   reads the bundled `payment_issues.json` via the file source and calls
    `ingestIssue` once per row.
-2. **Insert + enqueue as one unit** — `apps/api/src/modules/issues/ingest.ts`
+2. **Insert + enqueue as one unit** — `apps/api/src/modules/issues/ingestion/ingest.ts`
    opens a transaction, inserts the issue if its `external_id` is new, and
    enqueues a `process_issue` job. No insert means no job (re-reads are free).
 3. **Transactional enqueue** — `apps/api/src/queue/enqueue.ts` calls
@@ -179,11 +179,11 @@ intake → processing → needs_review → resolved, with the decision attached.
 |---|---|---|
 | Worker killed mid-processing | In-flight work is cancelled, the job's lock releases, a restarted worker picks the same issue back up. No work lost. | `tasks/process-issue.ts` |
 | Worker saves a result, then dies before marking the job done | The job runs again; the entry guard sees the issue already finished and exits. **Never decided twice.** | `tasks/process-issue.ts` |
-| Issue saved but the app crashes before queueing it | Cannot happen — save and enqueue are one transaction. | `modules/issues/ingest.ts` |
+| Issue saved but the app crashes before queueing it | Cannot happen — save and enqueue are one transaction. | `modules/issues/ingestion/ingest.ts` |
 | Processing fails transiently for under an hour | Retries 8 times with growing gaps totalling ~1h18m; resumes if the dependency recovers. | `queue/retry-policy.ts` |
 | Processing fails for more than an hour | Gives up at ~1h18m and puts the issue in an operator's review lane. Degrades to manual — never silently stuck. | `queue/retry-policy.ts` |
 | A non-transient failure (bad config, bad request) | Fails on the first attempt rather than burning 8 calls over an hour. | `queue/retry-policy.ts` |
-| The same issue arrives twice | The second is ignored — the source ID is unique, and no insert means no job. | `modules/issues/ingest.ts` |
+| The same issue arrives twice | The second is ignored — the source ID is unique, and no insert means no job. | `modules/issues/ingestion/ingest.ts` |
 | The same issue is queued twice | `job_key_mode := 'unsafe_dedupe'` collapses it. | `queue/enqueue.ts` |
 | Two workers grab the same job | Postgres row locking hands it to exactly one. | Graphile Worker |
 | Cron fires on several worker replicas | First to queue wins; the rest no-op, guaranteed by ACID. | Graphile Worker |

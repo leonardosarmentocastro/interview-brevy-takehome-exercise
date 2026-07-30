@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { pool } from "@/db/client";
-import { ingestIssue } from "@/modules/issues/ingest";
+import { ingestIssue } from "@/modules/issues/ingestion/ingest";
 import { createIssueSchema } from "@/modules/issues/schema";
 import { processIssue } from "@/modules/issues/tasks/process-issue";
 import { declineBody } from "@/modules/issues/__tests__/fixtures";
