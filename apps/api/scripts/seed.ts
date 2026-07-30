@@ -1,19 +1,17 @@
 import "dotenv/config";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { createIssueSchema } from "@/modules/issues/schema";
 import { ingestIssue } from "@/modules/issues/ingest";
+import { fetchIssues } from "@/modules/issues/sources/file-source";
 import { pool } from "@/db/client";
 
-// apps/api/scripts/seed.ts -> repo root docs/initial/payment_issues.json
-const dataPath = fileURLToPath(
-  new URL("../../../docs/initial/payment_issues.json", import.meta.url),
-);
-
+/**
+ * A one-shot `ingest_issues`. The cron does exactly this every minute; the
+ * script exists so a demo can trigger the pull on demand instead of waiting for
+ * the next tick. It goes through the same source and the same door, so there is
+ * no second copy of the feed path to keep in sync.
+ */
 async function main(): Promise<void> {
-  const issues = JSON.parse(readFileSync(dataPath, "utf8")) as unknown[];
-  for (const raw of issues) {
-    const created = await ingestIssue(createIssueSchema.parse(raw));
+  for (const raw of fetchIssues()) {
+    const created = await ingestIssue(raw);
     console.log(
       created
         ? `seeded ${created.externalId} -> ${created.id} (queued)`

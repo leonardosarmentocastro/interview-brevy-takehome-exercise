@@ -5,9 +5,10 @@ import {
   type CreateIssueInput,
 } from "@/modules/issues/schema";
 
-// apps/api/src/modules/issues/sources/ -> repo root docs/initial/
+// The feed ships inside the package, not in repo-root docs/, so `tsc` output
+// and any deploy that packages only apps/api still resolve it.
 const dataPath = fileURLToPath(
-  new URL("../../../../../../docs/initial/payment_issues.json", import.meta.url),
+  new URL("./data/payment_issues.json", import.meta.url),
 );
 
 /**
