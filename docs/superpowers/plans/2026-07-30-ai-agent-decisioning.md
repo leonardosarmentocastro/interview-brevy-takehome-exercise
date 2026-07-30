@@ -861,7 +861,7 @@ has no path to the ceiling."
 - Consumes: `capsFor`, `ceilingOf`, `Cap` (Task 4); `AgentDecision` (Task 2); `IssueRow`.
 - Produces: `score(decision: AgentDecision, issue: IssueRow): ScoreBreakdown`, `VERIFICATION_FAILED_SCORE`, type `ScoreBreakdown = { base: number; penalties: Penalty[]; caps: Cap[]; final: number }`, type `Penalty = { reason: string; amount: number }`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/api/src/modules/issues/ai/confidence/__tests__/score.test.ts`:
 
@@ -979,12 +979,12 @@ describe("score", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/modules/issues/ai/confidence/__tests__/score.test.ts`
 Expected: FAIL — cannot resolve `@/modules/issues/ai/confidence/score`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/api/src/modules/issues/ai/confidence/score.ts`:
 
@@ -1061,12 +1061,12 @@ export const score = (
 };
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/modules/issues/ai/confidence/__tests__/score.test.ts`
 Expected: PASS — 8 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/modules/issues/ai/confidence/score.ts \
