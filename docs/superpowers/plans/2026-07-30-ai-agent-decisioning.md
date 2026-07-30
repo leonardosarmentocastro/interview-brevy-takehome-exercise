@@ -2482,7 +2482,7 @@ Additive and nullable, as `model.ts` already anticipated.
 - Consumes: nothing.
 - Produces: `issueDecisions` gains `recommendation`, `confidence`, `confidenceBase`, `routingBand`, `scoreBreakdown`, `trace`. `DecisionRow` picks them up automatically through `InferSelectModel`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `apps/api/src/db/__tests__/db.test.ts`:
 
@@ -2525,12 +2525,12 @@ it("stores an agent decision with its confidence arithmetic", async () => {
 
 Add `issueDecisions` to that file's imports from `@/modules/issues/model` if it is not already imported.
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/db/__tests__/db.test.ts`
 Expected: FAIL — `recommendation` is not a known property / column does not exist
 
-- [ ] **Step 3: Add the columns to the model**
+- [x] **Step 3: Add the columns to the model**
 
 In `apps/api/src/modules/issues/model.ts`, extend `issueDecisions` (after `decidedBy`, before `at`):
 
@@ -2565,7 +2565,7 @@ Update the `decision` column comment on the same table:
   decision: text("decision").notNull(), // human: 'resolve' | 'escalate' | 'hold'; agent: 'resolve' | 'escalate' | 'defer'
 ```
 
-- [ ] **Step 4: Generate and apply the migration**
+- [x] **Step 4: Generate and apply the migration**
 
 ```bash
 npm run db:up
@@ -2575,17 +2575,17 @@ npm run db:migrate
 
 Expected: a new `drizzle/0004_*.sql` containing six `ALTER TABLE "issue_decisions" ADD COLUMN` statements.
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run src/db/__tests__/db.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Run the full suite**
+- [x] **Step 6: Run the full suite**
 
 Run: `npm test`
 Expected: PASS — the new columns are nullable, so every existing test is unaffected.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/modules/issues/model.ts drizzle src/db/__tests__/db.test.ts
