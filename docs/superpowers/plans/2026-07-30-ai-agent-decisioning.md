@@ -1261,7 +1261,7 @@ Feeds the retry policy that already exists. `retry-policy.ts` never learns what 
 - Consumes: `RetryableError`, `TerminalError` from `@/queue/retry-policy`.
 - Produces: `mapAgentError(err: unknown): Error`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/api/src/modules/issues/ai/agent/__tests__/errors.test.ts`:
 
@@ -1315,12 +1315,12 @@ describe("mapAgentError", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/modules/issues/ai/agent/__tests__/errors.test.ts`
 Expected: FAIL — cannot resolve `@/modules/issues/ai/agent/errors`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/api/src/modules/issues/ai/agent/errors.ts`:
 
@@ -1374,12 +1374,12 @@ export const mapAgentError = (err: unknown): Error => {
 };
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/modules/issues/ai/agent/__tests__/errors.test.ts`
 Expected: PASS — 7 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/modules/issues/ai/agent/errors.ts \
