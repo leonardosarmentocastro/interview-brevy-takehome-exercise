@@ -6,8 +6,6 @@ import {
   issueDecisions,
   issueStatusHistory,
 } from "@/modules/issues/model";
-import { ConflictError } from "@/db/data/errors";
-import { isUniqueViolation } from "@/db/data/pg-errors";
 import type { NewIssueRow } from "@/modules/issues/normalizer";
 import type { ReviewDecision } from "@/modules/issues/state-machine";
 import { mergeTimeline } from "@/modules/issues/timeline";
@@ -26,28 +24,6 @@ export type AuditTrail = {
 };
 
 export const issuesRepository = {
-  async create(row: NewIssueRow): Promise<IssueRow> {
-    try {
-      return await db.transaction(async (tx) => {
-        const [created] = await tx.insert(issues).values(row).returning();
-        await tx.insert(issueStatusHistory).values({
-          issueId: created.id,
-          fromStatus: null,
-          toStatus: "pending",
-          actor: "system",
-        });
-        return created;
-      });
-    } catch (err) {
-      if (isUniqueViolation(err)) {
-        throw new ConflictError(
-          `issue with external_id ${row.externalId} already exists`,
-        );
-      }
-      throw err;
-    }
-  },
-
   /**
    * Inserts an issue unless its `external_id` is already known, and records the
    * intake transition. Returns `null` when the issue was already present.
