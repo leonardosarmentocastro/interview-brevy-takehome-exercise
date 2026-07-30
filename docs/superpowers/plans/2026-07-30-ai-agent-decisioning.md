@@ -3307,7 +3307,7 @@ DECIDE_MODE fault injection the queue tests rely on is preserved."
 - Consumes: `decide`, `DecideResult` (Task 13); `issuesRepository.applyAgentDecision` (Task 12).
 - Produces: `processIssue(payload, helpers, deps?)` — `deps` defaults to `{ decide }`.
 
-- [ ] **Step 1: Pin the existing tests to stub mode**
+- [x] **Step 1: Pin the existing tests to stub mode**
 
 The default `DECIDE_MODE` is now `agent`, so the existing tests would try to reach the network. In `apps/api/src/modules/issues/tasks/__tests__/process-issue.test.ts`, add a `beforeEach` next to the existing `afterEach`:
 
@@ -3322,7 +3322,7 @@ beforeEach(() => {
 });
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Append to `apps/api/src/modules/issues/tasks/__tests__/process-issue.test.ts`:
 
@@ -3409,12 +3409,12 @@ Add to that file's imports:
 import { TerminalError } from "@/queue/retry-policy";
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run: `npx vitest run src/modules/issues/tasks/__tests__/process-issue.test.ts`
 Expected: FAIL — `processIssue` takes two arguments; the third is ignored and the issue lands in `needs_review`
 
-- [ ] **Step 4: Write the implementation**
+- [x] **Step 4: Write the implementation**
 
 In `apps/api/src/modules/issues/tasks/process-issue.ts`, replace the `decide` import and the body from `try {` onward:
 
@@ -3477,17 +3477,17 @@ export const processIssue = async (
 };
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run src/modules/issues/tasks/__tests__/process-issue.test.ts`
 Expected: PASS — all existing tests plus 3 new ones
 
-- [ ] **Step 6: Run the full suite**
+- [x] **Step 6: Run the full suite**
 
 Run: `npm test`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/modules/issues/tasks/process-issue.ts \
