@@ -103,4 +103,21 @@ describe("processIssue", () => {
 
     expect(await statusOf(issue.id)).toBe("needs_review");
   });
+
+  it("rethrows on abort so a killed worker's job can resume", async () => {
+    // SIGTERM aborts in-flight decide() work. That must NOT park the issue —
+    // the lease should release and a restarted worker resume. Abort is not a
+    // permanent failure.
+    const issue = await seed();
+    process.env.DECIDE_MODE = "slow";
+    const controller = new AbortController();
+    const run = processIssue(
+      { issueId: issue.id },
+      { job: { attempts: 1 }, abortSignal: controller.signal },
+    );
+    controller.abort();
+
+    await expect(run).rejects.toThrow(/abort/i);
+    expect(await statusOf(issue.id)).toBe("processing");
+  });
 });

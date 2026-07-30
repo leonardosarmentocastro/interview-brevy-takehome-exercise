@@ -28,6 +28,10 @@ export const processIssue = async (
   try {
     await decide(processing, { signal: helpers.abortSignal });
   } catch (err) {
+    // Shutdown abort must release the lease and let a restarted worker resume —
+    // it is not a permanent failure and must not park the issue.
+    if (helpers.abortSignal?.aborted) throw err;
+
     // Without this last-attempt check, an exhausted retryable failure lets the
     // queue mark the job permanently failed — stranding the issue in
     // `processing`, where nobody is looking.
