@@ -88,7 +88,7 @@ Two processes, one database.
 ┌─────────────┐        │      operational state (archived)                 │
 │  worker     │◀──────▶│                                                   │
 └─────────────┘ LISTEN └───────────────────────────────────────────────────┘
-   ├── crontab:  */1 * * * * ingest_issues
+   ├── crontab:  * * * * * ingest_issues ?max_attempts=1
    ├── task:     ingest_issues
    └── task:     process_issue
 ```
@@ -100,7 +100,7 @@ that is what makes crash-recovery an observable behaviour rather than a claim.
 
 ```
  crontab tick ─────────┐
- POST /issues ─────────┤──▶ ingestIssue(tx, raw)
+ POST /issues ─────────┤──▶ ingestIssue(raw)
  pnpm seed ────────────┘      │
                               │  ONE TRANSACTION
                               │  INSERT issues (pending) ON CONFLICT (external_id) DO NOTHING
@@ -150,10 +150,15 @@ complete, and the job retries against finished work.
 Additive, in the style of the existing `on_hold` migration:
 
 1. **`issue_status` += `needs_review`**
-2. **`state-machine.ts`** accepts `needs_review` as a legal `from` for
+2. **`issue_status_history` += `reason text` (nullable)** — why a transition
+   happened. The worker sets it when parking an issue ("processing failed
+   permanently: …"); human reviews leave it null, because their rationale lives
+   in the linked decision's `justification`.
+3. **`state-machine.ts`** accepts `needs_review` as a legal `from` for
    `resolve` / `escalate` / `hold`.
 
-That is the entire delta. No `confidence` column, no new tables.
+That is the entire delta — two columns' worth. No `confidence` column, no new
+tables.
 
 Note that `state-machine.ts` governs **human review verbs only** — it maps a
 `ReviewDecision` to a target status. The worker's `processing → needs_review`
@@ -177,8 +182,9 @@ src/queue/
   __tests__/retry-policy.test.ts
 
 src/modules/issues/
-  ingest.ts             # ingestIssue(tx, raw) — the single door
+  ingest.ts             # ingestIssue(raw) — the single door
   decide.ts             # the seam; v1 stub + DECIDE_MODE fault injection
+  lifecycle.ts          # hasLeftTheQueue() — the entry guard's predicate
   sources/file-source.ts # fetchIssues() over payment_issues.json
   tasks/
     ingest-issues.ts
@@ -214,14 +220,18 @@ export const enqueue = (tx: Tx, name: string, payload: object, opts: EnqueueOpts
 ### The single door
 
 ```ts
-export const ingestIssue = async (tx: Tx, raw: RawIssue): Promise<IssueRow | null> => {
-  const created = await issuesRepository.insertIfNew(tx, toIssueRow(raw));
-  if (!created) return null;                    // already known → no job
-  await enqueue(tx, "process_issue", { issueId: created.id },
-                { jobKey: created.id, maxAttempts: MAX_ATTEMPTS.processIssue });
-  return created;
-};
+export const ingestIssue = async (raw: CreateIssueInput): Promise<IssueRow | null> =>
+  db.transaction(async (tx) => {
+    const created = await issuesRepository.insertIfNew(tx, toIssueRow(raw));
+    if (!created) return null;                  // already known → no job
+    await enqueue(tx, "process_issue", { issueId: created.id },
+                  { jobKey: created.id, maxAttempts: MAX_ATTEMPTS.processIssue });
+    return created;
+  });
 ```
+
+It owns its transaction rather than accepting one, so no caller can accidentally
+enqueue outside a transaction — the property the whole design rests on.
 
 The cron task, `POST /issues`, and `pnpm seed` all call this. A webhook would be
 a fourth caller with no change to the function — noted as a seam, not built.
@@ -248,8 +258,12 @@ defended against: *"what happens if the AI API is down for more than an hour?"*
 the issue to a human. Attempt 9 would push the total to ~3h33m — too long to
 leave a payment issue unattended.
 
-`ingest_issues` gets **`max_attempts: 1`**: the crontab fires every minute and
-ingestion is idempotent, so the next tick *is* the retry.
+`ingest_issues` gets **`max_attempts: 1`**, set in the crontab line itself
+(`?max_attempts=1`): the crontab fires every minute and ingestion is idempotent,
+so the next tick *is* the retry. It lives there rather than in
+`retry-policy.ts` because cron-scheduled jobs are queued by the worker and never
+pass through `enqueue()` — putting it in both places would create two sources of
+truth with nothing keeping them in agreement.
 
 Concurrency is left at the library default. Tuning it against a rate limit is
 deferred to the cycle that introduces a rate limit.
@@ -292,11 +306,11 @@ export const processIssue = async ({ issueId }, helpers) => {
   } catch (err) {
     const lastChance = helpers.job.attempts >= MAX_ATTEMPTS.processIssue;
     if (isRetryable(err) && !lastChance) throw err;                   // → backoff
-    await issuesRepository.routeToHumanLane(issue, reasonFrom(err));  // → needs_review
+    await issuesRepository.parkForHumanReview(issue, reasonFrom(err));  // → needs_review
     return;                                                           // job SUCCEEDS
   }
 
-  await issuesRepository.routeToHumanLane(issue, "awaiting human decision");
+  await issuesRepository.parkForHumanReview(issue, "awaiting human decision");
 };
 ```
 
