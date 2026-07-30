@@ -195,7 +195,7 @@ The schema is the chokepoint that bounds prompt injection: there is no free-text
 - Consumes: nothing.
 - Produces: `agentDecisionSchema` (Zod), `agentDecisionJsonSchema` (JSON Schema object for `outputFormat`), `AGENT_RECOMMENDATIONS` tuple, types `AgentDecision`, `AgentRecommendation`, `TraceNode`, `CitedFact`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/api/src/modules/issues/ai/agent/__tests__/output-schema.test.ts`:
 
@@ -258,12 +258,12 @@ describe("agentDecisionSchema", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/modules/issues/ai/agent/__tests__/output-schema.test.ts`
 Expected: FAIL — cannot resolve `@/modules/issues/ai/agent/output-schema`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/api/src/modules/issues/ai/agent/output-schema.ts`:
 
@@ -320,14 +320,14 @@ export const agentDecisionJsonSchema = z.toJSONSchema(agentDecisionSchema) as {
 };
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/modules/issues/ai/agent/__tests__/output-schema.test.ts`
 Expected: PASS — 5 tests
 
 If the last test fails because `required` is absent, inspect the emitted schema with `console.log(JSON.stringify(agentDecisionJsonSchema, null, 2))` and adjust the assertion to match Zod 4's actual output shape. Do not weaken the other four tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/modules/issues/ai/agent/output-schema.ts \
