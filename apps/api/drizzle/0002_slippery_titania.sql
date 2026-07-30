@@ -1,0 +1,1 @@
+ALTER TYPE "public"."issue_status" ADD VALUE 'needs_review' BEFORE 'on_hold';

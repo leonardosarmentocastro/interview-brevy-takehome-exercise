@@ -18,6 +18,7 @@ export const issueType = pgEnum("issue_type", [
 export const issueStatus = pgEnum("issue_status", [
   "pending",
   "processing",
+  "needs_review",
   "on_hold",
   "resolved",
   "escalated",
@@ -67,7 +68,11 @@ export const issueStatusHistory = pgTable("issue_status_history", {
     .references(() => issues.id),
   fromStatus: issueStatus("from_status"),
   toStatus: issueStatus("to_status").notNull(),
-  actor: text("actor").notNull(), // 'system' (intake) | 'human'
+  actor: text("actor").notNull(), // 'system' (intake, worker) | 'human'
+  // Why this transition happened. Set by the worker when it parks an issue
+  // (e.g. "processing failed permanently: …"); null for human reviews, whose
+  // rationale lives in the linked decision's `justification`.
+  reason: text("reason"),
   decisionId: uuid("decision_id").references(() => issueDecisions.id),
   at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -1,31 +1,22 @@
 import "dotenv/config";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { createIssueSchema } from "@/modules/issues/schema";
-import { toIssueRow } from "@/modules/issues/normalizer";
-import { issuesRepository } from "@/modules/issues/repository";
-import { ConflictError } from "@/db/data/errors";
+import { ingestIssue } from "@/modules/issues/ingestion/ingest";
+import { fetchIssues } from "@/modules/issues/ingestion/sources/file-source";
 import { pool } from "@/db/client";
 
-// apps/api/scripts/seed.ts -> repo root docs/initial/payment_issues.json
-const dataPath = fileURLToPath(
-  new URL("../../../docs/initial/payment_issues.json", import.meta.url),
-);
-
+/**
+ * A one-shot `ingest_issues`. The cron does exactly this every minute; the
+ * script exists so a demo can trigger the pull on demand instead of waiting for
+ * the next tick. It goes through the same source and the same door, so there is
+ * no second copy of the feed path to keep in sync.
+ */
 async function main(): Promise<void> {
-  const issues = JSON.parse(readFileSync(dataPath, "utf8")) as unknown[];
-  for (const raw of issues) {
-    const row = toIssueRow(createIssueSchema.parse(raw));
-    try {
-      const created = await issuesRepository.create(row);
-      console.log(`seeded ${created.externalId} -> ${created.id}`);
-    } catch (err) {
-      if (err instanceof ConflictError) {
-        console.log(`skip ${row.externalId} (already exists)`);
-        continue;
-      }
-      throw err;
-    }
+  for (const raw of fetchIssues()) {
+    const created = await ingestIssue(raw);
+    console.log(
+      created
+        ? `seeded ${created.externalId} -> ${created.id} (queued)`
+        : `skip (already exists)`,
+    );
   }
   await pool.end();
 }

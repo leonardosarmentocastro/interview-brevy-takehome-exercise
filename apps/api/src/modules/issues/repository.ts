@@ -1,14 +1,12 @@
 import { asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/db/client";
+import { db, type Tx } from "@/db/client";
 import {
   issues,
   issueDecisions,
   issueStatusHistory,
 } from "@/modules/issues/model";
-import { ConflictError } from "@/db/data/errors";
-import { isUniqueViolation } from "@/db/data/pg-errors";
-import type { NewIssueRow } from "@/modules/issues/normalizer";
+import type { NewIssueRow } from "@/modules/issues/ingestion/normalizer";
 import type { ReviewDecision } from "@/modules/issues/state-machine";
 import { mergeTimeline } from "@/modules/issues/timeline";
 import type { TimelineEntry } from "@/modules/issues/timeline";
@@ -26,26 +24,79 @@ export type AuditTrail = {
 };
 
 export const issuesRepository = {
-  async create(row: NewIssueRow): Promise<IssueRow> {
-    try {
-      return await db.transaction(async (tx) => {
-        const [created] = await tx.insert(issues).values(row).returning();
-        await tx.insert(issueStatusHistory).values({
-          issueId: created.id,
-          fromStatus: null,
-          toStatus: "pending",
-          actor: "system",
-        });
-        return created;
+  /**
+   * Inserts an issue unless its `external_id` is already known, and records the
+   * intake transition. Returns `null` when the issue was already present.
+   *
+   * Takes a caller-supplied transaction so the insert and the job enqueue
+   * commit together — see `modules/issues/ingestion/ingest.ts`. Unlike
+   * `create`, a duplicate is not an error here: re-reading the same upstream
+   * feed is the normal case, not a fault.
+   */
+  async insertIfNew(tx: Tx, row: NewIssueRow): Promise<IssueRow | null> {
+    const [created] = await tx
+      .insert(issues)
+      .values(row)
+      .onConflictDoNothing({ target: issues.externalId })
+      .returning();
+    if (!created) return null;
+
+    await tx.insert(issueStatusHistory).values({
+      issueId: created.id,
+      fromStatus: null,
+      toStatus: "pending",
+      actor: "system",
+    });
+    return created;
+  },
+
+  /**
+   * Marks the start of processing. Idempotent: a retried job re-enters here
+   * with the issue already `processing`, and the transition must stay a single
+   * fact in the audit trail rather than gaining a row per retry.
+   *
+   * Note this is NOT a mutual-exclusion claim. Only one worker holds a given
+   * job at a time — that is the job lease's guarantee, and using this update as
+   * a lock instead would strand any issue whose worker died mid-job.
+   */
+  async beginProcessing(issue: IssueRow): Promise<void> {
+    if (issue.status === "processing") return;
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(issues)
+        .set({ status: "processing" })
+        .where(eq(issues.id, issue.id));
+      await tx.insert(issueStatusHistory).values({
+        issueId: issue.id,
+        fromStatus: issue.status,
+        toStatus: "processing",
+        actor: "system",
       });
-    } catch (err) {
-      if (isUniqueViolation(err)) {
-        throw new ConflictError(
-          `issue with external_id ${row.externalId} already exists`,
-        );
-      }
-      throw err;
-    }
+    });
+  },
+
+  /**
+   * Hands the issue to a human, recording why.
+   *
+   * Both exits from the worker land here: the ordinary one (v1 has no decider,
+   * so every issue needs a person) and the failure one (processing failed
+   * permanently). No decision row is written — nothing has decided anything.
+   */
+  async parkForHumanReview(issue: IssueRow, reason: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(issues)
+        .set({ status: "needs_review" })
+        .where(eq(issues.id, issue.id));
+      await tx.insert(issueStatusHistory).values({
+        issueId: issue.id,
+        fromStatus: issue.status,
+        toStatus: "needs_review",
+        actor: "system",
+        reason,
+      });
+    });
   },
 
   async list(filters?: { statuses?: IssueStatus[] }): Promise<IssueRow[]> {

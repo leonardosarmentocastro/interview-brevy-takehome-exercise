@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createIssueSchema } from "@/modules/issues/schema";
-import { toIssueRow } from "@/modules/issues/normalizer";
+import { toIssueRow } from "@/modules/issues/ingestion/normalizer";
 
 const decline = {
   id: "iss_001",

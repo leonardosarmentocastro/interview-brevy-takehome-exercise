@@ -12,6 +12,7 @@ const statusRow = (
   fromStatus: "processing",
   toStatus: "resolved",
   actor: "human",
+  reason: null,
   decisionId: null,
   ...over,
 });

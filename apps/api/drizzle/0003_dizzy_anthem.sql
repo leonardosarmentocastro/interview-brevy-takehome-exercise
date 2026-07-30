@@ -1,0 +1,1 @@
+ALTER TABLE "issue_status_history" ADD COLUMN "reason" text;

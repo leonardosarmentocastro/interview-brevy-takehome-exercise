@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { Server } from "node:http";
 import { startServer, stopServer } from "@test/helpers";
+import { jobsForIssue, listJobs } from "@test/queue";
 import { declineBody, missedInstallmentBody, postIssue } from "./fixtures";
 
 describe("POST /issues", () => {
@@ -43,5 +44,22 @@ describe("POST /issues", () => {
     const list = await (await fetch(`${base}/issues`)).json();
     expect(list).toHaveLength(1);
     expect(list[0].externalId).toBe("iss_001");
+  });
+
+  it("queues the new issue for processing", async () => {
+    const res = await postIssue(base, declineBody);
+    const created = await res.json();
+
+    const jobs = await jobsForIssue(created.id);
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0].task_identifier).toBe("process_issue");
+  });
+
+  it("queues no second job when the same issue is submitted twice", async () => {
+    await postIssue(base, declineBody);
+    const second = await postIssue(base, declineBody);
+
+    expect(second.status).toBe(409);
+    expect(await listJobs()).toHaveLength(1);
   });
 });
