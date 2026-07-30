@@ -1,4 +1,3 @@
-import { fileURLToPath } from "node:url";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import {
   agentDecisionJsonSchema,
@@ -7,6 +6,7 @@ import {
 } from "@/modules/issues/ai/agent/output-schema";
 import { mapAgentError } from "@/modules/issues/ai/agent/errors";
 import { SYSTEM_PROMPT, buildPrompt } from "@/modules/issues/ai/agent/prompt";
+import { PACKAGE_ROOT, readGuardHook } from "@/modules/issues/ai/agent/read-guard";
 import {
   PAYMENTS_TOOL_NAMES,
   paymentsTools,
@@ -19,10 +19,6 @@ export const AGENT_MODEL = "claude-opus-5";
 // decision (load skill, read policy, two lookups, answer) without letting a
 // confused run burn the queue's whole retry budget in one attempt.
 const MAX_TURNS = 12;
-
-// The skills and the policy document both resolve relative to the api package,
-// not the process cwd — a worker may be started from anywhere in the monorepo.
-const PACKAGE_ROOT = fileURLToPath(new URL("../../../../../", import.meta.url));
 
 export type AgentRunner = (
   issue: IssueRow,
@@ -72,9 +68,15 @@ export const runAgent: AgentRunner = async (issue, { signal }) => {
         cwd: PACKAGE_ROOT,
         settingSources: ["project"], // loads .claude/skills/*
         mcpServers: { payments: paymentsTools },
-        // Enumerated, read-only. No Write, no Edit, no Bash: a fully hijacked
-        // agent can read the policy and two fixtures and nothing else.
+        // Enumerated, read-only. No Write, no Edit, no Bash — and the
+        // PreToolUse hook below narrows Read to the policy document, so the
+        // fixtures are reachable only through the audited typed tools.
         allowedTools: ["Read", "Skill", ...PAYMENTS_TOOL_NAMES],
+        // allowedTools pre-approves Read, so the permission layer will not
+        // stop it. PreToolUse denials are evaluated ahead of that decision
+        // (sdk.d.ts:4166), which makes this the layer that actually bounds
+        // which files the agent can open.
+        hooks: { PreToolUse: [{ matcher: "Read", hooks: [readGuardHook] }] },
         outputFormat: { type: "json_schema", schema: agentDecisionJsonSchema },
         maxTurns: MAX_TURNS,
         abortController: controller,

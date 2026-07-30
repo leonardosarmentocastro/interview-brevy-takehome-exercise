@@ -2215,7 +2215,7 @@ Out of scope: scrubbing secrets from `reasoning`/`dataGap` before persistence. W
 - Produces: `readGuardHook: HookCallback`, `PACKAGE_ROOT`, `ALLOWED_READ_ROOTS`.
 - `run.ts` drops its local `PACKAGE_ROOT` and imports the one from `read-guard.ts`, so the `"../../../../../"` hop exists in exactly one place.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/api/src/modules/issues/ai/agent/__tests__/read-guard.test.ts`:
 
@@ -2308,12 +2308,12 @@ describe("readGuardHook", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/modules/issues/ai/agent/__tests__/read-guard.test.ts`
 Expected: FAIL — cannot resolve `@/modules/issues/ai/agent/read-guard`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/api/src/modules/issues/ai/agent/read-guard.ts`:
 
@@ -2388,12 +2388,12 @@ export const readGuardHook: HookCallback = async (input) => {
 };
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/modules/issues/ai/agent/__tests__/read-guard.test.ts`
 Expected: PASS — 9 tests
 
-- [ ] **Step 5: Wire the hook into the runner**
+- [x] **Step 5: Wire the hook into the runner**
 
 In `apps/api/src/modules/issues/ai/agent/run.ts`, delete the local `PACKAGE_ROOT` declaration and its comment, and import it alongside the hook:
 
@@ -2419,12 +2419,12 @@ Leave the `allowedTools` comment accurate — it now reads "a fully hijacked age
         // fixtures are reachable only through the audited typed tools.
 ```
 
-- [ ] **Step 6: Run the whole suite**
+- [x] **Step 6: Run the whole suite**
 
 Run: `npx vitest run`
 Expected: PASS, with no change to any pre-existing test — the hook is additive.
 
-- [ ] **Step 7: Confirm the hook actually binds**
+- [x] **Step 7: Confirm the hook actually binds**
 
 The one thing the unit tests cannot answer: whether a `PreToolUse` deny overrides a tool pre-approved through `allowedTools`. `sdk.d.ts:4166` states PreToolUse denials bypass `canUseTool`, which implies yes, but confirm it rather than trust it.
 
@@ -2446,7 +2446,7 @@ Expected: the decision comes back normally, and no part of the output contains `
 
 Revert the `metadata.reason` edit before committing either way.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/modules/issues/ai/agent/read-guard.ts \
