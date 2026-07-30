@@ -1,6 +1,6 @@
 import { asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/db/client";
+import { db, type Tx } from "@/db/client";
 import {
   issues,
   issueDecisions,
@@ -46,6 +46,32 @@ export const issuesRepository = {
       }
       throw err;
     }
+  },
+
+  /**
+   * Inserts an issue unless its `external_id` is already known, and records the
+   * intake transition. Returns `null` when the issue was already present.
+   *
+   * Takes a caller-supplied transaction so the insert and the job enqueue
+   * commit together — see `modules/issues/ingest.ts`. Unlike `create`, a
+   * duplicate is not an error here: re-reading the same upstream feed is the
+   * normal case, not a fault.
+   */
+  async insertIfNew(tx: Tx, row: NewIssueRow): Promise<IssueRow | null> {
+    const [created] = await tx
+      .insert(issues)
+      .values(row)
+      .onConflictDoNothing({ target: issues.externalId })
+      .returning();
+    if (!created) return null;
+
+    await tx.insert(issueStatusHistory).values({
+      issueId: created.id,
+      fromStatus: null,
+      toStatus: "pending",
+      actor: "system",
+    });
+    return created;
   },
 
   async list(filters?: { statuses?: IssueStatus[] }): Promise<IssueRow[]> {
