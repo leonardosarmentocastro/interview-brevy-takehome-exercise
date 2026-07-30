@@ -1574,7 +1574,7 @@ replaces a fixture read without the agent contract changing."
 - Consumes: `IssueRow`.
 - Produces: `SYSTEM_PROMPT: string`, `buildPrompt(issue: IssueRow): string`, `sanitizeText(value: string): string`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/api/src/modules/issues/ai/agent/__tests__/prompt.test.ts`:
 
@@ -1652,12 +1652,12 @@ describe("buildPrompt", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/modules/issues/ai/agent/__tests__/prompt.test.ts`
 Expected: FAIL — cannot resolve `@/modules/issues/ai/agent/prompt`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/api/src/modules/issues/ai/agent/prompt.ts`:
 
@@ -1744,12 +1744,12 @@ ${JSON.stringify(payload, null, 2)}
 };
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/modules/issues/ai/agent/__tests__/prompt.test.ts`
 Expected: PASS — 8 tests
 
-- [ ] **Step 5: Write the four skills**
+- [x] **Step 5: Write the four skills**
 
 Skills hold *procedure*, not policy text. If a skill copied the rules there would be two sources of truth and the "edit the document, change the behaviour" property would die.
 
@@ -1895,12 +1895,12 @@ Governing section: `policies.md:30-41`. Read it before deciding.
    matters to your verdict, mark it `cant_evaluate`.
 ```
 
-- [ ] **Step 6: Verify the skills are well-formed**
+- [x] **Step 6: Verify the skills are well-formed**
 
 Run: `head -5 .claude/skills/*/SKILL.md`
 Expected: each file opens with YAML frontmatter containing `name:` and `description:`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/modules/issues/ai/agent/prompt.ts \
