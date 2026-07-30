@@ -43,7 +43,17 @@ export type CitedFact = z.infer<typeof citedFactSchema>;
 
 // Handed to the SDK as `outputFormat: { type: "json_schema", schema }` so the
 // model is constrained at generation time, not merely validated after.
-export const agentDecisionJsonSchema = z.toJSONSchema(agentDecisionSchema) as {
+//
+// Zod 4's default emission is draft-2020-12 and carries a `~standard` metadata
+// key. The Agent SDK CLI rejects the 2020-12 $schema URI, so we target
+// draft-07 and strip both non-schema fields before handing the object over.
+const { $schema: _schema, ["~standard"]: _standard, ...agentDecisionJsonSchemaRest } =
+  z.toJSONSchema(agentDecisionSchema, { target: "draft-07" }) as Record<
+    string,
+    unknown
+  > & { $schema?: string; "~standard"?: unknown };
+
+export const agentDecisionJsonSchema = agentDecisionJsonSchemaRest as {
   type: string;
   required?: string[];
   [key: string]: unknown;

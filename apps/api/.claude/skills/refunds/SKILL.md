@@ -12,7 +12,7 @@ live there, not here.
 
 | Fact | Where it comes from |
 | --- | --- |
-| Days since purchase | the issue payload (`days_since_purchase`) |
+| Days since purchase | the issue payload (`days_since_purchase`). Do not recompute it from `created_at` — the corpus has fixed dates and that comparison is always wrong. |
 | Whether the item shipped | `get_transaction` → `shipping.status`. Never the issue payload. |
 | Installment plan | `get_transaction` → `installment_plan` |
 | Lifetime spend | `get_customer` → `lifetime_spend` |

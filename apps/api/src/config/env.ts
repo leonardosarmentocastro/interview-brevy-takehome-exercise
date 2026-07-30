@@ -8,6 +8,9 @@ const envSchema = z.object({
   DECIDE_MODE: z
     .enum(["stub", "slow", "fail_retryable", "fail_terminal"])
     .default("stub"),
+  // Optional so the API and the test suite boot without it. Only the worker's
+  // agent path needs it, and it fails loudly there if absent.
+  ANTHROPIC_API_KEY: z.string().min(1).optional(),
 });
 
 export const env = envSchema.parse(process.env);

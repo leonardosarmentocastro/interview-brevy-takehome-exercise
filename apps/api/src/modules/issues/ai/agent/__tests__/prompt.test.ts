@@ -45,6 +45,15 @@ describe("SYSTEM_PROMPT", () => {
   it("permits abstention", () => {
     expect(SYSTEM_PROMPT).toMatch(/human_review|cannot decide|abstain/i);
   });
+
+  // The fixture corpus is frozen in early 2025, so created_at vs. wall-clock
+  // makes every transaction look centuries stale and every window rule fail.
+  // days_since_purchase is the intended day count; the prompt has to say so,
+  // or the agent spots the mismatch and abstains on a case that should decide.
+  it("names days_since_purchase as the day count and forbids the created_at comparison", () => {
+    expect(SYSTEM_PROMPT).toContain("days_since_purchase");
+    expect(SYSTEM_PROMPT).toMatch(/do NOT derive elapsed time/i);
+  });
 });
 
 describe("buildPrompt", () => {
