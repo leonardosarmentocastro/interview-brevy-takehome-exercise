@@ -15,6 +15,13 @@
       "when": 1785213274292,
       "tag": "0001_sleepy_dark_phoenix",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785374804788,
+      "tag": "0002_slippery_titania",
+      "breakpoints": true
     }
   ]
 }

@@ -65,6 +65,24 @@ describe("POST /issues/:id/review (happy paths)", () => {
     expect((await res.json()).status).toBe("escalated");
   });
 
+  it("resolves an issue sitting in needs_review", async () => {
+    await postIssue(base, declineBody);
+    await setIssueStatus("iss_001", "needs_review");
+
+    const res = await fetch(`${base}/issues/iss_001/review`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        decision: "resolve",
+        justification: "retry succeeded on the customer's new card",
+        reviewer: "ops@brevy.com",
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).status).toBe("resolved");
+  });
+
   it("hold: processing -> on_hold", async () => {
     await postIssue(base, { ...declineBody, id: externalId });
     await setIssueStatus(externalId, "processing");

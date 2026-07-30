@@ -8,11 +8,22 @@ export type ReviewDecision = (typeof REVIEW_DECISIONS)[number];
 type Rule = { target: IssueStatus; from: IssueStatus[] };
 
 // The human-review transition map. pending is never here (a review needs a first
-// agent verdict); resolved is terminal (never a legal `from`).
+// machine or agent verdict); resolved is terminal (never a legal `from`).
+// needs_review is where the worker parks an issue it cannot decide — the
+// primary lane a human reviews from.
 const TRANSITIONS: Record<ReviewDecision, Rule> = {
-  resolve: { target: "resolved", from: ["processing", "on_hold", "escalated"] },
-  escalate: { target: "escalated", from: ["processing", "on_hold"] },
-  hold: { target: "on_hold", from: ["processing", "escalated"] },
+  resolve: {
+    target: "resolved",
+    from: ["processing", "needs_review", "on_hold", "escalated"],
+  },
+  escalate: {
+    target: "escalated",
+    from: ["processing", "needs_review", "on_hold"],
+  },
+  hold: {
+    target: "on_hold",
+    from: ["processing", "needs_review", "escalated"],
+  },
 };
 
 // Target status for a legal (current, decision) pair, else null (illegal → 409).

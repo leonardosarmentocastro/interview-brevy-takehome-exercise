@@ -57,3 +57,11 @@ describe("nextStatusFor", () => {
     }
   });
 });
+
+describe("needs_review", () => {
+  it("is reviewable — a human can resolve, escalate or hold it", () => {
+    expect(nextStatusFor("needs_review", "resolve")).toBe("resolved");
+    expect(nextStatusFor("needs_review", "escalate")).toBe("escalated");
+    expect(nextStatusFor("needs_review", "hold")).toBe("on_hold");
+  });
+});

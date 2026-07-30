@@ -18,6 +18,7 @@ export const issueType = pgEnum("issue_type", [
 export const issueStatus = pgEnum("issue_status", [
   "pending",
   "processing",
+  "needs_review",
   "on_hold",
   "resolved",
   "escalated",
