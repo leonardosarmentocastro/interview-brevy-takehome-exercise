@@ -1406,13 +1406,13 @@ Typed, read-only data access. Handlers are plain functions so they are testable 
 - Consumes: `findCustomer`, `findTransaction` (Task 1).
 - Produces: `paymentsTools` (SDK MCP server object), `getCustomerHandler({ id })`, `getTransactionHandler({ id })`, `PAYMENTS_TOOL_NAMES: string[]`.
 
-- [ ] **Step 1: Install the SDK**
+- [x] **Step 1: Install the SDK**
 
 ```bash
 npm install @anthropic-ai/claude-agent-sdk
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Create `apps/api/src/modules/issues/ai/agent/__tests__/tools.test.ts`:
 
@@ -1464,12 +1464,12 @@ describe("getTransactionHandler", () => {
 });
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run: `npx vitest run src/modules/issues/ai/agent/__tests__/tools.test.ts`
 Expected: FAIL — cannot resolve `@/modules/issues/ai/agent/tools`
 
-- [ ] **Step 4: Write the implementation**
+- [x] **Step 4: Write the implementation**
 
 Create `apps/api/src/modules/issues/ai/agent/tools.ts`:
 
@@ -1540,12 +1540,12 @@ export const paymentsTools = createSdkMcpServer({
 });
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run src/modules/issues/ai/agent/__tests__/tools.test.ts`
 Expected: PASS — 5 tests
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add package.json package-lock.json \
