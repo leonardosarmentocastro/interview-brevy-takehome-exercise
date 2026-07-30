@@ -1,0 +1,96 @@
+{
+  "recommendation": "auto_resolve",
+  "confidence": 0.93,
+  "reasoning": "Changed-mind refund at day 3 of the 14-day window with shipping.status confirmed as \"not_shipped\", so both halves of the policies.md:77 auto-resolve condition are satisfied and no escalation trigger at :78 applies. Because the transaction carries an installment plan, :79 limits the refund to paid installments only: refund $37.25 (1 of 4 paid) and cancel the remaining 3 — the issue payload's $149 is the full plan value and must not be paid out. Lifetime spend of $1,847.50 is under the :88 high-value threshold, though close enough to it to be worth noting.",
+  "trace": [
+    {
+      "src": 76,
+      "rule": "Changed mind / buyer's remorse eligible window is 14 days from purchase",
+      "status": "fired",
+      "evidence": "Issue payload days_since_purchase = 3, well inside the 14-day window. Per instructions, elapsed time is taken from the payload, not derived from transaction created_at."
+    },
+    {
+      "src": 77,
+      "rule": "Auto-resolve when within 14 days AND item hasn't shipped yet",
+      "status": "fired",
+      "evidence": "Both conditions verified: days_since_purchase = 3 (within window) and get_transaction -> shipping.status = \"not_shipped\" (read from the transaction record, not the issue payload)."
+    },
+    {
+      "src": 78,
+      "rule": "Escalate when item has shipped OR more than 14 days since purchase",
+      "status": "not_met",
+      "evidence": "shipping.status is \"not_shipped\" (estimated_ship_date 2025-01-15, carrier FedEx, no dispatch) and days_since_purchase = 3. Neither escalation trigger fires."
+    },
+    {
+      "src": 79,
+      "rule": "Installment plans: refund only paid installments; cancel remaining",
+      "status": "fired",
+      "evidence": "Transaction status is \"active_installment\" with installment_plan of 4 total at $37.25 each, installments_paid = 1. Refund is limited to $37.25; the remaining 3 installments are cancelled. The issue payload's amount of 149 is the full plan value and is not the refundable sum."
+    },
+    {
+      "src": 88,
+      "rule": "High-value customers (lifetime spend > $2000) may warrant escalation even on an auto-resolvable case",
+      "status": "not_met",
+      "evidence": "get_customer -> lifetime_spend = 1847.5, below the $2000 threshold. Customer also has risk_score \"low\" and disputes_filed = 0, so no extra-care trigger."
+    },
+    {
+      "src": 86,
+      "rule": "When in doubt, escalate",
+      "status": "not_met",
+      "evidence": "No doubt remains: both auto-resolve conditions were verified against source data, no escalation trigger applies, and the installment carve-out is unambiguous. No policy clauses conflict on this case."
+    }
+  ],
+  "citedFacts": [
+    {
+      "source": "issue",
+      "path": "days_since_purchase",
+      "value": "3"
+    },
+    {
+      "source": "transaction",
+      "path": "shipping.status",
+      "value": "not_shipped"
+    },
+    {
+      "source": "transaction",
+      "path": "status",
+      "value": "active_installment"
+    },
+    {
+      "source": "transaction",
+      "path": "installment_plan.total_installments",
+      "value": "4"
+    },
+    {
+      "source": "transaction",
+      "path": "installment_plan.installments_paid",
+      "value": "1"
+    },
+    {
+      "source": "transaction",
+      "path": "installment_plan.amount_per_installment",
+      "value": "37.25"
+    },
+    {
+      "source": "transaction",
+      "path": "amount",
+      "value": "149"
+    },
+    {
+      "source": "customer",
+      "path": "lifetime_spend",
+      "value": "1847.5"
+    },
+    {
+      "source": "customer",
+      "path": "risk_score",
+      "value": "low"
+    },
+    {
+      "source": "customer",
+      "path": "disputes_filed",
+      "value": "0"
+    }
+  ],
+  "dataGap": null
+}

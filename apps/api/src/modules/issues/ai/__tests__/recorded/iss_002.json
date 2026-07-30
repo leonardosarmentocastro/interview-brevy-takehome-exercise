@@ -1,0 +1,140 @@
+{
+  "recommendation": "human_review",
+  "confidence": 0.78,
+  "reasoning": "Auto-resolve is off the table: the account is 5 days overdue (limit is 3) and the customer's risk score is \"medium\", not \"low\" — two of the three required conditions fail outright, and the third (successful retry) can't be evaluated because no payment processor is reachable. Neither escalation trigger clearly fires either: 5 days is inside the 7-day grace period, and while the customer holds 2 concurrent installment plans, the data shows plan count only — not whether the second plan is also delinquent. That leaves a case the policy neither auto-resolves nor escalates, so it goes to a human, who can attempt the retry and check the sibling plan's standing.",
+  "trace": [
+    {
+      "src": 38,
+      "rule": "Auto-resolve requires ALL of: ≤3 days overdue, \"low\" risk score, retry succeeds",
+      "status": "not_met",
+      "evidence": "Two conditions fail independently: days_overdue is 5 (>3) and risk_score is \"medium\" (not \"low\"). The conjunction is broken regardless of the retry outcome."
+    },
+    {
+      "src": 39,
+      "rule": "3 or fewer days overdue",
+      "status": "not_met",
+      "evidence": "Issue payload days_overdue = 5, which exceeds the 3-day auto-resolve ceiling."
+    },
+    {
+      "src": 40,
+      "rule": "Customer has \"low\" risk score",
+      "status": "not_met",
+      "evidence": "get_customer(cust_108).risk_score = \"medium\"."
+    },
+    {
+      "src": 41,
+      "rule": "Retry payment succeeds",
+      "status": "cant_evaluate",
+      "evidence": "No payment processor is available to attempt a retry against; no retry outcome exists in any tool result. Moot in any case since the other two conjuncts already fail."
+    },
+    {
+      "src": 34,
+      "rule": "Grace period: 7 days before escalation",
+      "status": "not_met",
+      "evidence": "days_overdue = 5, still inside the 7-day grace period, so the grace-period-expiry path to escalation has not opened."
+    },
+    {
+      "src": 37,
+      "rule": "Escalate when more than 7 days overdue",
+      "status": "not_met",
+      "evidence": "days_overdue = 5, which is not more than 7."
+    },
+    {
+      "src": 37,
+      "rule": "Escalate when customer has missed payments on multiple plans",
+      "status": "cant_evaluate",
+      "evidence": "get_customer(cust_108).current_installment_plans = 2, but that counts plans in flight, not delinquent plans. The corpus exposes no per-plan delinquency for the second plan, so whether payments were missed on multiple plans cannot be determined."
+    },
+    {
+      "src": 36,
+      "rule": "Resolution options: retry payment, modify plan schedule, or pause plan",
+      "status": "fired",
+      "evidence": "txn_4892.installment_plan shows 2 of 4 installments paid with the 3rd (62.5) outstanding; all three remedies remain open to a human reviewer, none is automatable here."
+    },
+    {
+      "src": 88,
+      "rule": "Consider escalating customers with lifetime spend > $2000",
+      "status": "not_met",
+      "evidence": "get_customer(cust_108).lifetime_spend = 580, well under the $2000 high-value threshold."
+    },
+    {
+      "src": 86,
+      "rule": "When in doubt, escalate — a human reviewing a borderline case costs less than a wrong automated decision",
+      "status": "fired",
+      "evidence": "With auto-resolve blocked and no escalation trigger confirmed, the case falls in the gap between :37 and :38; routing to human review is the conservative disposition this guideline prescribes."
+    }
+  ],
+  "citedFacts": [
+    {
+      "source": "issue",
+      "path": "days_overdue",
+      "value": "5"
+    },
+    {
+      "source": "issue",
+      "path": "installment_number",
+      "value": "3"
+    },
+    {
+      "source": "issue",
+      "path": "installments_total",
+      "value": "4"
+    },
+    {
+      "source": "issue",
+      "path": "amount_due",
+      "value": "62.5"
+    },
+    {
+      "source": "customer",
+      "path": "risk_score",
+      "value": "medium"
+    },
+    {
+      "source": "customer",
+      "path": "current_installment_plans",
+      "value": "2"
+    },
+    {
+      "source": "customer",
+      "path": "lifetime_spend",
+      "value": "580"
+    },
+    {
+      "source": "customer",
+      "path": "failed_payments",
+      "value": "1"
+    },
+    {
+      "source": "customer",
+      "path": "successful_payments",
+      "value": "3"
+    },
+    {
+      "source": "transaction",
+      "path": "status",
+      "value": "active_installment"
+    },
+    {
+      "source": "transaction",
+      "path": "installment_plan.installments_paid",
+      "value": "2"
+    },
+    {
+      "source": "transaction",
+      "path": "installment_plan.total_installments",
+      "value": "4"
+    },
+    {
+      "source": "transaction",
+      "path": "installment_plan.amount_per_installment",
+      "value": "62.5"
+    },
+    {
+      "source": "transaction",
+      "path": "amount",
+      "value": "250"
+    }
+  ],
+  "dataGap": "Two gaps. (1) No payment-retry capability exists in this environment, so policies.md:41 (\"Retry payment succeeds\") is unevaluable — though it does not change the verdict, since :39 and :40 already fail. (2) The customer record reports current_installment_plans = 2 but exposes no delinquency status for the second plan, so the \"missed payments on multiple plans\" escalation trigger at policies.md:37 cannot be resolved; if that second plan is also in arrears, this case escalates rather than going to routine review."
+}

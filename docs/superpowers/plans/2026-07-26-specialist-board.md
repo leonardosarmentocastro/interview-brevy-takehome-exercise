@@ -7,7 +7,7 @@
 > - After every task that adds JS/data, run `cd sample && npm test` and confirm green before moving on.
 > - Tasks 5–6 are visual/interactive (DOM wiring + CSS). There are no DOM unit tests in this repo — verify by serving the app (`cd <repo-root> && python3 -m http.server 8000`, open `http://localhost:8000/sample/`, click the **Specialist board** pill in the bottom nav) and checking the described behaviour. If you cannot open a browser, rely on the node tests plus the "static HTML contains hook" assertions and proceed.
 > - **Do not** refactor existing operator/monitor code beyond the exact changes named here (Task 1 retrofits, Task 5 wiring). Preserve the dark-theme CSS tokens.
-> - The design spec is `docs/design/2026-07-26-specialist-board-design.md`; read it if a decision is unclear.
+> - The design spec is `docs/superpowers/specs/2026-07-26-specialist-board-design.md`; read it if a decision is unclear.
 
 **Goal:** Build the specialist board (fraud & escalations) — the third and final screen — into the existing static `sample/` app: a full-height, per-column-scrolling board (shared escalation queue + private lifecycle lanes), a criticality/urgency card signal system, and a case view that stacks agent→operator→you reasoning into a terminal decision rail.
 
@@ -914,7 +914,7 @@ git commit -m "feat(sample): specialist board + case view styles"
 
 ---
 
-**Plan complete and saved to `docs/plans/2026-07-26-specialist-board.md`. Two execution options:**
+**Plan complete and saved to `docs/superpowers/plans/2026-07-26-specialist-board.md`. Two execution options:**
 
 **1. Subagent-Driven (recommended)** — I dispatch a fresh subagent per task, review between tasks, fast iteration.
 

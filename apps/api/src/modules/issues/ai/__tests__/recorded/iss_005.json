@@ -1,0 +1,132 @@
+{
+  "recommendation": "human_review",
+  "confidence": 0.72,
+  "reasoning": "Expired-card declines can never auto-resolve (policies.md:26) — the customer must supply a new payment method, and retrying is explicitly ruled out (:23). The escalation trigger at :25 requires no response after 48 hours AND a recurring subscription; the recurring half is confirmed (is_recurring true, 14 months active), but there is no notification-sent timestamp, response record, or days_since_purchase in the payload, so the 48-hour half cannot be evaluated and escalating on half a conjunction would be a guess. Routing to a human who can check the notification log and drive the payment-method update, which is time-sensitive since the next box ships 2025-01-20.",
+  "trace": [
+    {
+      "src": 26,
+      "rule": "Expired card: cannot auto-resolve — customer must provide a new payment method",
+      "status": "fired",
+      "evidence": "Transaction txn_6201 has status 'failed' with failure_reason 'card_expired', matching the expired-card branch; the rule forecloses auto_resolve outright."
+    },
+    {
+      "src": 23,
+      "rule": "Expired card: no auto-retry — retrying won't help",
+      "status": "fired",
+      "evidence": "failure_reason is 'card_expired' on payment_method card_amex_3782, so no retry should be attempted."
+    },
+    {
+      "src": 24,
+      "rule": "Expired card: immediately request an updated payment method",
+      "status": "fired",
+      "evidence": "This is the correct immediate action for this issue; the subscription's next box ships 2025-01-20, making the update time-sensitive."
+    },
+    {
+      "src": 25,
+      "rule": "Expired card: escalate when no response after 48 hours AND it is a recurring subscription",
+      "status": "cant_evaluate",
+      "evidence": "The recurring half is satisfied (transaction is_recurring true, subscription.months_active 14), but no field in the issue payload or either tool result records whether a notification was sent, when, or whether the customer responded — and the payload carries no days_since_purchase. The 48-hour half is unevaluable, so the conjunction cannot be established."
+    },
+    {
+      "src": 88,
+      "rule": "High-value customers (lifetime spend > $2000) get extra care; consider escalating",
+      "status": "fired",
+      "evidence": "Customer cust_315 lifetime_spend is 4205, above the $2000 threshold. The guideline is advisory and framed around cases that could otherwise auto-resolve; this case cannot auto-resolve regardless, but it supports careful human handling."
+    },
+    {
+      "src": 86,
+      "rule": "When in doubt, escalate",
+      "status": "not_met",
+      "evidence": "The only doubt here is a missing-data question (was the customer notified, has 48 hours elapsed) that a human reviewer can resolve directly from the notification log. Policy :26 already fixes the outcome as non-auto-resolvable, so there is no borderline automated decision for this guideline to guard against."
+    },
+    {
+      "src": 9,
+      "rule": "Insufficient funds branch (retry budget, notification after second failure)",
+      "status": "not_met",
+      "evidence": "The issue error_code is 'card_expired' and the transaction failure_reason is 'card_expired', not insufficient funds, so this branch does not apply."
+    }
+  ],
+  "citedFacts": [
+    {
+      "source": "transaction",
+      "path": "failure_reason",
+      "value": "card_expired"
+    },
+    {
+      "source": "transaction",
+      "path": "status",
+      "value": "failed"
+    },
+    {
+      "source": "transaction",
+      "path": "is_recurring",
+      "value": "true"
+    },
+    {
+      "source": "transaction",
+      "path": "amount",
+      "value": "34.99"
+    },
+    {
+      "source": "transaction",
+      "path": "merchant",
+      "value": "SubscriptionBox.co"
+    },
+    {
+      "source": "transaction",
+      "path": "payment_method",
+      "value": "card_amex_3782"
+    },
+    {
+      "source": "transaction",
+      "path": "subscription.months_active",
+      "value": "14"
+    },
+    {
+      "source": "transaction",
+      "path": "subscription.monthly_amount",
+      "value": "34.99"
+    },
+    {
+      "source": "transaction",
+      "path": "subscription.next_box_ships",
+      "value": "2025-01-20"
+    },
+    {
+      "source": "customer",
+      "path": "lifetime_spend",
+      "value": "4205"
+    },
+    {
+      "source": "customer",
+      "path": "risk_score",
+      "value": "low"
+    },
+    {
+      "source": "customer",
+      "path": "successful_payments",
+      "value": "36"
+    },
+    {
+      "source": "customer",
+      "path": "failed_payments",
+      "value": "2"
+    },
+    {
+      "source": "customer",
+      "path": "disputes_filed",
+      "value": "0"
+    },
+    {
+      "source": "issue",
+      "path": "error_code",
+      "value": "card_expired"
+    },
+    {
+      "source": "issue",
+      "path": "is_recurring",
+      "value": "true"
+    }
+  ],
+  "dataGap": "No notification or response data is available: nothing records whether the \"request updated payment method\" notice (policies.md:24) was sent, when it was sent, or whether the customer responded. The issue payload also omits days_since_purchase. Together these make the \"no response after 48 hours\" half of the escalation trigger at policies.md:25 unevaluable, which is the sole reason this is human_review rather than a determinate escalate."
+}

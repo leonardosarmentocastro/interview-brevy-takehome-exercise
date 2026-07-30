@@ -5,6 +5,9 @@ import { isRetryable, MAX_ATTEMPTS } from "@/queue/retry-policy";
 
 export type ProcessIssuePayload = { issueId: string };
 
+/** Injectable so tests exercise the worker's mechanics without a model call. */
+export type ProcessDeps = { decide: typeof decide };
+
 // The only two statuses the worker is responsible for.
 const OWNED_BY_QUEUE: IssueStatus[] = ["pending", "processing"];
 
@@ -29,6 +32,7 @@ const reasonFrom = (err: unknown): string =>
 export const processIssue = async (
   { issueId }: ProcessIssuePayload,
   helpers: ProcessHelpers,
+  deps: ProcessDeps = { decide },
 ): Promise<void> => {
   const issue = await issuesRepository.findByIdOrExternalId(issueId);
   if (!issue) return; // deleted between enqueue and run — nothing to do
@@ -40,8 +44,9 @@ export const processIssue = async (
   await issuesRepository.beginProcessing(issue);
   const processing = { ...issue, status: "processing" as const };
 
+  let result;
   try {
-    await decide(processing, { signal: helpers.abortSignal });
+    result = await deps.decide(processing, { signal: helpers.abortSignal });
   } catch (err) {
     // Shutdown abort must release the lease and let a restarted worker resume —
     // it is not a permanent failure and must not park the issue.
@@ -57,9 +62,12 @@ export const processIssue = async (
     return; // job SUCCEEDS — the dead letter is a human lane, not a void
   }
 
-  // v1 has no decider, so every successfully-processed issue needs a person.
-  await issuesRepository.parkForHumanReview(
-    processing,
-    "awaiting human decision",
-  );
+  // No verdict means nothing decided anything, so no decision row is written —
+  // the issue simply goes to a person, with the reason recorded.
+  if (result.kind === "no_verdict") {
+    await issuesRepository.parkForHumanReview(processing, result.reason);
+    return;
+  }
+
+  await issuesRepository.applyAgentDecision(processing, result.params);
 };

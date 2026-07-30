@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { pool } from "@/db/client";
 import { ingestIssue } from "@/modules/issues/ingestion/ingest";
 import { createIssueSchema } from "@/modules/issues/schema";
 import { processIssue } from "@/modules/issues/tasks/process-issue";
 import { declineBody } from "@/modules/issues/__tests__/fixtures";
+import { TerminalError } from "@/queue/retry-policy";
 
 const seed = async () =>
   (await ingestIssue(createIssueSchema.parse(declineBody)))!;
@@ -23,6 +24,13 @@ const historyOf = async (issueId: string) =>
       [issueId],
     )
   ).rows;
+
+beforeEach(() => {
+  // These tests cover the queue's mechanics — leases, retries, the entry
+  // guard — not the agent's judgement. Stub mode keeps them offline and
+  // deterministic; the agent path is exercised below with an injected decider.
+  process.env.DECIDE_MODE = "stub";
+});
 
 afterEach(() => {
   delete process.env.DECIDE_MODE;
@@ -119,5 +127,80 @@ describe("processIssue", () => {
 
     await expect(run).rejects.toThrow(/abort/i);
     expect(await statusOf(issue.id)).toBe("processing");
+  });
+});
+
+describe("processIssue — applying an agent verdict", () => {
+  const decided = (over: Record<string, unknown> = {}) =>
+    async () => ({
+      kind: "decided" as const,
+      params: {
+        recommendation: "auto_resolve" as const,
+        decision: "resolve" as const,
+        target: "resolved" as const,
+        band: "auto_execute" as const,
+        reasoning: "Both conditions hold.",
+        model: "claude-opus-5",
+        confidence: 0.95,
+        confidenceBase: 0.95,
+        scoreBreakdown: { base: 0.95, penalties: [], caps: [], final: 0.95 },
+        trace: [{ src: 78, rule: "r", status: "fired" as const, evidence: "e" }],
+        reason: "agent recommended auto_resolve at 95%",
+        ...over,
+      },
+    });
+
+  it("resolves an issue the agent decided with high confidence", async () => {
+    const issue = await seed();
+    await processIssue({ issueId: issue.id }, helpers(1), { decide: decided() });
+
+    expect(await statusOf(issue.id)).toBe("resolved");
+    expect((await historyOf(issue.id)).map((r) => r.to_status)).toEqual([
+      "pending",
+      "processing",
+      "resolved",
+    ]);
+
+    const { rows } = await pool.query(
+      "SELECT actor, recommendation, routing_band FROM issue_decisions WHERE issue_id = $1",
+      [issue.id],
+    );
+    expect(rows[0]).toMatchObject({
+      actor: "agent",
+      recommendation: "auto_resolve",
+      routing_band: "auto_execute",
+    });
+  });
+
+  it("parks when the agent reached no usable verdict", async () => {
+    const issue = await seed();
+    await processIssue({ issueId: issue.id }, helpers(1), {
+      decide: async () => ({
+        kind: "no_verdict" as const,
+        reason: "agent decision cited no valid policies.md line",
+      }),
+    });
+
+    expect(await statusOf(issue.id)).toBe("needs_review");
+    const history = await historyOf(issue.id);
+    expect(history[history.length - 1].reason).toMatch(/citation|cited/i);
+
+    const { rows } = await pool.query(
+      "SELECT count(*)::int AS n FROM issue_decisions WHERE issue_id = $1",
+      [issue.id],
+    );
+    // Nothing decided anything, so no decision row is written.
+    expect(rows[0].n).toBe(0);
+  });
+
+  it("still parks the issue when the agent fails permanently", async () => {
+    const issue = await seed();
+    await processIssue({ issueId: issue.id }, helpers(1), {
+      decide: async () => {
+        throw new TerminalError("agent call failed with status 401");
+      },
+    });
+
+    expect(await statusOf(issue.id)).toBe("needs_review");
   });
 });

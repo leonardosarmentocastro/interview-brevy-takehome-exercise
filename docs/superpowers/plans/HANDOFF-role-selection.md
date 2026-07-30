@@ -6,8 +6,8 @@ Paste the block below into Cursor to execute the plan inline, task by task.
 
 You are implementing a committed plan in this repo (a static vanilla-JS prototype under `sample/`). Execute it INLINE, task by task, using strict TDD.
 
-PLAN:  docs/plans/2026-07-26-role-selection-admin-identity.md
-SPEC:  docs/design/2026-07-26-role-selection-admin-identity-design.md
+PLAN:  docs/superpowers/plans/2026-07-26-role-selection-admin-identity.md
+SPEC:  docs/superpowers/specs/2026-07-26-role-selection-admin-identity-design.md
 
 Read both fully before writing any code. The plan has 3 tasks with exact file paths, code, and test code — follow them verbatim; do not improvise alternatives.
 

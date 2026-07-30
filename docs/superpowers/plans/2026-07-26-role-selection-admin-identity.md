@@ -7,7 +7,7 @@
 > - After Task 1 (adds JS), run `cd sample && npm test` and confirm green before moving on.
 > - Tasks 2–3 are visual/interactive (DOM wiring + CSS). There are no DOM unit tests in this repo — verify by serving the app (`cd <repo-root> && python3 -m http.server 8000`, open `http://localhost:8000/sample/`) and checking the described behaviour. If you cannot open a browser, rely on the Task 1 node tests plus the "static HTML contains hook" assertions and proceed.
 > - **Do not** refactor existing operator/monitor/specialist code beyond the exact changes named here. Preserve the dark-theme CSS tokens.
-> - The design spec is `docs/design/2026-07-26-role-selection-admin-identity-design.md`; read it if a decision is unclear.
+> - The design spec is `docs/superpowers/specs/2026-07-26-role-selection-admin-identity-design.md`; read it if a decision is unclear.
 
 **Goal:** Add the MVP presentation opener — a role-selection modal (admin enabled; specialist/operator disabled) shown on arrival that lands the presenter on the virtual-agent view, plus a shared app header carrying an `ADM` identity chip and a per-board page title, which also folds the specialist board into the same content width as the other two boards.
 

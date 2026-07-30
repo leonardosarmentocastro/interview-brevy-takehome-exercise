@@ -1,4 +1,4 @@
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db, type Tx } from "@/db/client";
 import {
@@ -6,6 +6,12 @@ import {
   issueDecisions,
   issueStatusHistory,
 } from "@/modules/issues/model";
+import type {
+  AgentRecommendation,
+  TraceNode,
+} from "@/modules/issues/ai/agent/output-schema";
+import type { AppliedVerb, RoutingBand } from "@/modules/issues/ai/routing";
+import type { ScoreBreakdown } from "@/modules/issues/ai/confidence/score";
 import type { NewIssueRow } from "@/modules/issues/ingestion/normalizer";
 import type { ReviewDecision } from "@/modules/issues/state-machine";
 import { mergeTimeline } from "@/modules/issues/timeline";
@@ -21,6 +27,20 @@ export type AuditTrail = {
   statusHistory: StatusHistoryRow[];
   decisions: DecisionRow[];
   timeline: TimelineEntry[];
+};
+
+export type AgentDecisionParams = {
+  recommendation: AgentRecommendation;
+  decision: AppliedVerb;
+  target: IssueStatus;
+  band: RoutingBand;
+  reasoning: string;
+  model: string;
+  confidence: number;
+  confidenceBase: number;
+  scoreBreakdown: ScoreBreakdown;
+  trace: TraceNode[];
+  reason: string;
 };
 
 export const issuesRepository = {
@@ -97,6 +117,79 @@ export const issuesRepository = {
         reason,
       });
     });
+  },
+
+  /**
+   * Atomic agent outcome: the decision, the linked status-history row, and the
+   * new status — all or nothing.
+   *
+   * Mirrors `recordReview` deliberately. A human decision and an agent
+   * decision are the same kind of fact with a different author, so they share
+   * a shape and the audit trail joins them without special-casing either.
+   *
+   * `decision` is the verb actually applied while `recommendation` is what the
+   * agent asked for. They diverge whenever a cap withholds authority, and
+   * storing both is what makes that divergence auditable.
+   */
+  async applyAgentDecision(
+    issue: IssueRow,
+    params: AgentDecisionParams,
+  ): Promise<void> {
+    await db.transaction(async (tx) => {
+      const [decision] = await tx
+        .insert(issueDecisions)
+        .values({
+          issueId: issue.id,
+          actor: "agent",
+          decision: params.decision,
+          justification: params.reasoning,
+          decidedBy: params.model,
+          recommendation: params.recommendation,
+          confidence: params.confidence,
+          confidenceBase: params.confidenceBase,
+          routingBand: params.band,
+          scoreBreakdown: params.scoreBreakdown,
+          trace: params.trace,
+        })
+        .returning();
+
+      await tx.insert(issueStatusHistory).values({
+        issueId: issue.id,
+        fromStatus: issue.status,
+        toStatus: params.target,
+        actor: "agent",
+        reason: params.reason,
+        decisionId: decision.id,
+      });
+
+      await tx
+        .update(issues)
+        .set({ status: params.target })
+        .where(eq(issues.id, issue.id));
+    });
+  },
+
+  /**
+   * Issues the agent executed but flagged for a human to check after the fact
+   * — the middle confidence band.
+   *
+   * Derived by joining the decision rather than denormalized onto `issues`.
+   * At 10,000 issues/day this wants a flag column or a partial index; at this
+   * volume a join is honest and keeps one source of truth.
+   */
+  async listAwaitingAsyncReview(): Promise<IssueRow[]> {
+    const rows = await db
+      .select({ issue: issues })
+      .from(issues)
+      .innerJoin(issueDecisions, eq(issueDecisions.issueId, issues.id))
+      .where(
+        and(
+          eq(issueDecisions.actor, "agent"),
+          eq(issueDecisions.routingBand, "execute_flagged"),
+        ),
+      )
+      .orderBy(desc(issues.ingestedAt));
+    return rows.map((r) => r.issue);
   },
 
   async list(filters?: { statuses?: IssueStatus[] }): Promise<IssueRow[]> {

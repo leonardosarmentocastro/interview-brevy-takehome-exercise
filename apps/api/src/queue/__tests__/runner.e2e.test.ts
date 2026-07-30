@@ -1,5 +1,5 @@
 import { runOnce } from "graphile-worker";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { pool } from "@/db/client";
 import { ingestIssue } from "@/modules/issues/ingestion/ingest";
 import { createIssueSchema } from "@/modules/issues/schema";
@@ -8,6 +8,16 @@ import { declineBody } from "@/modules/issues/__tests__/fixtures";
 import { listJobs } from "@test/queue";
 
 describe("worker wiring", () => {
+  beforeEach(() => {
+    // This test proves task-name wiring, not agent judgement. DECIDE_MODE
+    // defaults to agent, which would hit the network and blow the 5s budget.
+    process.env.DECIDE_MODE = "stub";
+  });
+
+  afterEach(() => {
+    delete process.env.DECIDE_MODE;
+  });
+
   it("drains a queued issue through the real runner", async () => {
     // Everything else is tested by calling handlers directly. This one test
     // proves the wiring: that the task name in the payload matches a task the

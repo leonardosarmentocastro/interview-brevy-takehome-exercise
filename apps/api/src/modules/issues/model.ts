@@ -54,9 +54,31 @@ export const issueDecisions = pgTable("issue_decisions", {
     .notNull()
     .references(() => issues.id),
   actor: decisionActor("actor").notNull(),
-  decision: text("decision").notNull(), // 'resolve' | 'escalate' | 'hold'
+  decision: text("decision").notNull(), // human: 'resolve' | 'escalate' | 'hold'; agent: 'resolve' | 'escalate' | 'defer'
   justification: text("justification").notNull(),
   decidedBy: text("decided_by").notNull(), // reviewer identifier
+  // --- agent-only, all nullable: a human review leaves every one of these
+  // null, and an agent decision fills them all. Additive so no existing row
+  // or query changes.
+
+  // The agent's raw verdict, kept distinct from `decision` (the verb actually
+  // applied). A capped decision recommends `auto_resolve` while applying
+  // `defer` — that divergence is the point, so both are recorded.
+  recommendation: text("recommendation"),
+  // Final score, after penalties and caps.
+  confidence: numeric("confidence", { precision: 4, scale: 3, mode: "number" }),
+  // The model's own self-report, before deterministic adjustment. Storing both
+  // is what makes agent calibration measurable later.
+  confidenceBase: numeric("confidence_base", {
+    precision: 4,
+    scale: 3,
+    mode: "number",
+  }),
+  routingBand: text("routing_band"), // auto_execute | execute_flagged | human_decision
+  // The arithmetic, so a reviewer can check the score rather than trust it.
+  scoreBreakdown: jsonb("score_breakdown"),
+  // The cited rule-by-rule trace, each entry naming a policies.md line.
+  trace: jsonb("trace"),
   at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
 });
 

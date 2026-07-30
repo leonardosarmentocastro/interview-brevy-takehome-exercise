@@ -1,0 +1,107 @@
+{
+  "recommendation": "escalate",
+  "confidence": 0.93,
+  "reasoning": "Escalate. The item-not-received auto-resolve condition fails because tracking shows the package still in_transit at a Chicago distribution center with no delivery confirmation, and the $249 dispute amount independently exceeds the $200 escalation threshold. The customer is not high-value ($312 lifetime spend) and merchant fulfilment history is unavailable, but neither changes the result.",
+  "trace": [
+    {
+      "src": 51,
+      "rule": "Auto-resolve when tracking shows \"delivered\" AND it's been 3+ days since delivery",
+      "status": "not_met",
+      "evidence": "transaction.shipping.status is \"in_transit\", not \"delivered\"; last update was a scan at \"Distribution Center, Chicago IL\" and estimated_delivery is 2025-01-14. With no delivery event, the 3-days-since-delivery clause cannot be satisfied."
+    },
+    {
+      "src": 53,
+      "rule": "Escalate when dispute amount exceeds $200",
+      "status": "fired",
+      "evidence": "Issue amount is $249, which exceeds $200. Confirmed against transaction.amount of 249. This trigger alone requires escalation."
+    },
+    {
+      "src": 54,
+      "rule": "Escalate when customer is high-value (lifetime spend > $2000)",
+      "status": "not_met",
+      "evidence": "customer.lifetime_spend is 312, far below the $2000 high-value threshold. Customer has 2 lifetime transactions and 0 prior disputes filed."
+    },
+    {
+      "src": 55,
+      "rule": "Escalate when merchant has history of fulfillment issues",
+      "status": "cant_evaluate",
+      "evidence": "No merchant fulfilment-history data exists for FashionForward in the available tools (get_customer and get_transaction expose no merchant reliability field). Per the disputes procedure, this is recorded as a data gap rather than guessed."
+    },
+    {
+      "src": 56,
+      "rule": "Required context: tracking info, delivery confirmation, customer communication history",
+      "status": "fired",
+      "evidence": "Tracking info was retrieved (UPS, 1Z999AA10123456784, in_transit). Delivery confirmation is absent because no delivery has occurred. Customer communication history is not exposed by the available tools."
+    },
+    {
+      "src": 57,
+      "rule": "Can auto-resolve only if tracking confirms delivery and no escalation triggers apply",
+      "status": "not_met",
+      "evidence": "Both halves fail: tracking does not confirm delivery (in_transit), and the >$200 escalation trigger at :53 has fired. Auto-resolution is therefore barred."
+    },
+    {
+      "src": 86,
+      "rule": "When in doubt, escalate — a human reviewing a borderline case costs less than a wrong automated decision",
+      "status": "fired",
+      "evidence": "An unevaluable escalation trigger (:55) plus an in-transit shipment whose estimated delivery has passed makes this a case for human judgment rather than automation."
+    }
+  ],
+  "citedFacts": [
+    {
+      "source": "issue",
+      "path": "reason",
+      "value": "item_not_received"
+    },
+    {
+      "source": "issue",
+      "path": "amount",
+      "value": "249"
+    },
+    {
+      "source": "issue",
+      "path": "days_since_purchase",
+      "value": "12"
+    },
+    {
+      "source": "transaction",
+      "path": "shipping.status",
+      "value": "in_transit"
+    },
+    {
+      "source": "transaction",
+      "path": "shipping.estimated_delivery",
+      "value": "2025-01-14"
+    },
+    {
+      "source": "transaction",
+      "path": "shipping.last_location",
+      "value": "Distribution Center, Chicago IL"
+    },
+    {
+      "source": "transaction",
+      "path": "shipping.carrier",
+      "value": "UPS"
+    },
+    {
+      "source": "transaction",
+      "path": "status",
+      "value": "completed"
+    },
+    {
+      "source": "customer",
+      "path": "lifetime_spend",
+      "value": "312"
+    },
+    {
+      "source": "customer",
+      "path": "risk_score",
+      "value": "low"
+    },
+    {
+      "source": "customer",
+      "path": "disputes_filed",
+      "value": "0"
+    }
+  ],
+  "dataGap": "Merchant fulfilment history for FashionForward is not available in this dataset, so the escalation trigger at policies.md:55 could not be evaluated. It does not affect the outcome, since the $200 amount trigger at :53 independently requires escalation."
+}
