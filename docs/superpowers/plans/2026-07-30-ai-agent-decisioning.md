@@ -621,7 +621,7 @@ Caps are computed from source rows, never from model output. That asymmetry is w
 - Consumes: `findCustomer` (Task 1); `IssueRow` from `@/modules/issues/types`.
 - Produces: `capsFor(issue: IssueRow): Cap[]`, `ceilingOf(caps: Cap[]): number`, type `Cap = { ceiling: number; reason: string; src: number }`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/api/src/modules/issues/ai/confidence/__tests__/caps.test.ts`:
 
@@ -732,12 +732,12 @@ describe("ceilingOf", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/modules/issues/ai/confidence/__tests__/caps.test.ts`
 Expected: FAIL — cannot resolve `@/modules/issues/ai/confidence/caps`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/api/src/modules/issues/ai/confidence/caps.ts`:
 
@@ -830,12 +830,12 @@ export const ceilingOf = (caps: Cap[]): number =>
   caps.reduce((lowest, cap) => Math.min(lowest, cap.ceiling), 1);
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/modules/issues/ai/confidence/__tests__/caps.test.ts`
 Expected: PASS — 10 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/modules/issues/ai/confidence/caps.ts \
