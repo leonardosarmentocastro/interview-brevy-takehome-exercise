@@ -1091,7 +1091,7 @@ felt strongly about."
 - Consumes: `AgentRecommendation` (Task 2); `IssueStatus` from `@/modules/issues/types`.
 - Produces: `route(recommendation: AgentRecommendation, confidence: number): RoutedOutcome`, `bandFor(confidence: number): RoutingBand`, types `RoutingBand = "auto_execute" | "execute_flagged" | "human_decision"`, `RoutedOutcome = { band: RoutingBand; status: IssueStatus; decision: AppliedVerb }`, `AppliedVerb = "resolve" | "escalate" | "defer"`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/api/src/modules/issues/ai/__tests__/routing.test.ts`:
 
@@ -1163,12 +1163,12 @@ describe("route", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/modules/issues/ai/__tests__/routing.test.ts`
 Expected: FAIL — cannot resolve `@/modules/issues/ai/routing`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/api/src/modules/issues/ai/routing.ts`:
 
@@ -1230,12 +1230,12 @@ export const route = (
 };
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/modules/issues/ai/__tests__/routing.test.ts`
 Expected: PASS — 8 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/modules/issues/ai/routing.ts \
