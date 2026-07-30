@@ -3,8 +3,8 @@
 > **Status:** approved design, captured 2026-07-26. Ready for an implementation plan.
 > **Scope:** the third and final screen — the **specialist board for fraud &
 > escalations** (context doc §4). Builds on
-> `docs/design/2026-07-23-payment-triage-console-context.md` (system context),
-> `docs/design/2026-07-24-virtual-agent-monitor-design.md` (monitor), and the
+> `docs/superpowers/specs/2026-07-23-payment-triage-console-context.md` (system context),
+> `docs/superpowers/specs/2026-07-24-virtual-agent-monitor-design.md` (monitor), and the
 > shipped operator screen (`sample/`).
 > **Prototype target:** a static, hand-authored HTML/CSS/JS screen in the same
 > spirit as `sample/` — a "dumb template" over the fixtures, not a live engine.

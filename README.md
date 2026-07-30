@@ -1,374 +1,223 @@
 # Payment Issue Processing Service
 
-A backend service that takes payment exceptions from an upstream BNPL / payments
-platform (declines, expired cards, missed installments, disputes, refunds),
-stores them in Postgres, and runs each one through a durable job queue into a
-decision pipeline. Every status change is audited. A human review endpoint
-resolves what the pipeline cannot.
+A backend service that takes payment exceptions from an upstream BNPL /
+payments platform (declines, expired cards, missed installments, disputes,
+refunds), stores them in Postgres, and runs each one through a durable job queue
+into an AI decision pipeline. Every status change is audited. A human review
+endpoint resolves what the pipeline cannot.
 
 A Next.js UI exists under `apps/web`; this README is about the API and worker.
 
-## Architecture
-
-Two processes, one database.
-
-```
-┌─────────────┐        ┌──────────────────── Postgres ────────────────────┐
-│  api        │        │                                                   │
-│  (express)  │───────▶│  issues, issue_status_history, issue_decisions     │
-│  :3333      │        │      business state / audit trail (permanent)      │
-└─────────────┘        │                                                   │
-                       │  graphile_worker.*                                │
-┌─────────────┐        │      operational state (archived)                 │
-│  worker     │◀──────▶│                                                   │
-└─────────────┘ LISTEN └───────────────────────────────────────────────────┘
-   ├── crontab:  * * * * * ingest_issues ?max=1
-   ├── task:     ingest_issues
-   └── task:     process_issue
+```bash
+pnpm install
+pnpm --filter api db:up && pnpm --filter api db:migrate
+pnpm --filter api worker          # terminal 1 — crontab + process_issue
+pnpm --filter api dev             # terminal 2 — HTTP API on :3333
 ```
 
+## Documentation
+
+This README is the big picture: how the system fits together, the three
+decisions that shaped it, and what I would change next. Each section links to a
+companion doc that goes a level deeper.
+
+| | |
+| --- | --- |
+| [01 — Architecture](docs/readme/01-architecture.md) | Diagrams, one issue traced end to end, module map |
+| [02 — Running it](docs/readme/02-running-it.md) | Setup, six runnable scenarios, tests |
+| [03 — Database schema](docs/readme/03-database-schema.md) | Tables column by column, scaling to 10k/day |
+| [04 — Queue design](docs/readme/04-queue-design.md) | Failure-mode table, leases, retry budget |
+| [05 — Agent architecture](docs/readme/05-agent-architecture.md) | Confidence, prompt injection, the five issues |
+| [06 — What I'd do differently](docs/readme/06-what-id-do-differently.md) | Full backlog with reasoning |
+
+Design specs and implementation plans for each build cycle live under
+`docs/superpowers/`. The original kickoff material is preserved in
+`archived/initial/`.
+
+## Architecture overview
+
+Two processes, one database. They never talk to each other — Postgres is the
+only channel between them.
+
 ```
- crontab tick ─────────┐
- POST /issues ─────────┤──▶ ingestIssue(raw)
- pnpm seed ────────────┘      │
-                              │  ONE TRANSACTION
-                              │  INSERT issues (pending) ON CONFLICT (external_id) DO NOTHING
-                              │  INSERT issue_status_history (→ pending)
-                              │  add_job('process_issue', {issueId},
-                              │          job_key := issueId, job_key_mode := 'unsafe_dedupe')
-                              ▼
-                    LISTEN/NOTIFY wakes the worker
-                              ▼
-                    process_issue(issueId)
-                      1. entry guard: already finished? → no-op
-                      2. pending → processing (recorded once)
-                      3. decide()          ← agent + verify/score/route
-                      4. applyAgentDecision (or park) in one transaction
+                          ┌──────────── Postgres ────────────┐
+  ┌─────────────┐         │  issues                          │
+  │  api        │────────▶│  issue_status_history            │
+  │  (express)  │         │  issue_decisions                 │
+  │  :3333      │         │      business state (permanent)  │
+  └─────────────┘         │                                  │
+                          │  graphile_worker.*               │
+  ┌─────────────┐         │      job state (archived)        │
+  │  worker     │◀───────▶│                                  │
+  └─────────────┘ LISTEN  └──────────────────────────────────┘
+     ├── crontab:  * * * * * ingest_issues
+     ├── task:     ingest_issues
+     └── task:     process_issue
 ```
 
-## How one issue travels the system
+**How data flows.** Issues enter through one function, `ingestIssue`, whichever
+door they arrive at — the cron tick, `POST /issues`, or `pnpm seed`. It opens a
+single transaction and does three things: insert the issue as `pending` if its
+source ID is new, record the intake in the status history, and enqueue a
+`process_issue` job. All three commit together or none do.
 
-1. **Cron pulls the feed** — `apps/api/src/modules/issues/tasks/ingest-issues.ts`
-   reads the bundled `payment_issues.json` via the file source and calls
-   `ingestIssue` once per row.
-2. **Insert + enqueue as one unit** — `apps/api/src/modules/issues/ingestion/ingest.ts`
-   opens a transaction, inserts the issue if its `external_id` is new, and
-   enqueues a `process_issue` job. No insert means no job (re-reads are free).
-3. **Transactional enqueue** — `apps/api/src/queue/enqueue.ts` calls
-   `graphile_worker.add_job` on the same connection as the insert, so a
-   crash cannot leave an issue without a job.
-4. **Worker claims the job** — `apps/api/src/modules/issues/tasks/process-issue.ts`
-   loads the issue, returns early if it has already left the queue, flips
-   `pending → processing`, and calls `decide()`.
-5. **Outcome** — `decide()` runs the agent, then deterministic verify / score /
-   route. High-confidence cases resolve or escalate via
-   `applyAgentDecision`; anything below the floor (or with no usable verdict)
-   parks in `needs_review`. A human can still finish parked work with
-   `POST /issues/:id/review`.
+The worker wakes on `LISTEN/NOTIFY`, claims the job, and runs `process_issue`:
+check whether this issue was already finished, flip `pending → processing`, call
+`decide()`. `decide()` asks the agent for a verdict, then deterministically
+verifies, scores and routes it. Confident verdicts are applied — `resolved` or
+`escalated`. Everything else parks in `needs_review` with the agent's reasoning
+attached, for a human to finish via `POST /issues/:id/review`.
 
-## Where state lives
+**Where state lives.** Two kinds, deliberately separated:
 
 | Kind | Tables | Lifetime |
 | --- | --- | --- |
 | Business state | `issues`, `issue_status_history`, `issue_decisions` | Permanent audit trail |
-| Operational state | `graphile_worker.*` | Ephemeral — jobs are archived/removed once done |
+| Operational state | `graphile_worker.*` | Ephemeral — archived once the job is done |
 
 Postgres is the system of record. The queue holds only job references
-(`{ issueId }`), never issue payloads. If the issue lived in the queue,
-"survive a restart" would be a queue-durability question; with this design it
-is already answered by the database.
+(`{ issueId }`), never issue payloads. That is the load-bearing choice: if the
+issue lived in the queue, "does it survive a restart?" would be a
+queue-durability question. Here the database has already answered it.
 
-## Setup
+**How the pieces connect.** Dependencies point one way. The queue layer knows
+nothing about AI, the AI layer knows nothing about HTTP, and the two worker
+tasks are the only place they meet. So the model provider and the queue
+substrate are each swappable without touching the other.
 
-```bash
-pnpm install
-pnpm --filter api db:up
-pnpm --filter api db:migrate
-```
-
-Then in separate terminals:
-
-```bash
-pnpm --filter api worker          # crontab + process_issue
-pnpm --filter api dev             # HTTP API on :3333
-```
-
-Optional one-shot seed (same door as the cron):
-
-```bash
-pnpm --filter api seed
-```
-
-## Try it yourself
-
-### 1. Happy path
-
-```bash
-pnpm --filter api db:up && pnpm --filter api db:migrate
-pnpm --filter api worker          # terminal 1
-pnpm --filter api dev             # terminal 2
-curl -s localhost:3333/issues | jq '.[] | {external_id: .externalId, status}'
-```
-
-Within a minute the cron ingests all 5 issues and the worker runs each through
-`decide()` — clean high-confidence cases resolve; the rest park in
-`needs_review` (requires `ANTHROPIC_API_KEY` on the worker).
-
-### 2. Idempotency
-
-```bash
-pnpm --filter api seed
-pnpm --filter api seed            # run it again
-curl -s localhost:3333/issues | jq 'length'     # still 5
-```
-
-The second run prints `skip (already exists)` for every issue and queues nothing.
-
-### 3. Crash recovery
-
-```bash
-DECIDE_MODE=slow pnpm --filter api worker       # terminal 1
-pnpm --filter api seed                          # terminal 2
-# Ctrl-C the worker while an issue is mid-flight, then restart it:
-pnpm --filter api worker
-```
-
-The job's lock expires, the restarted worker picks the same issue back up, and
-it completes exactly once.
-
-### 4. Retry with backoff
-
-```bash
-DECIDE_MODE=fail_retryable pnpm --filter api worker
-```
-
-Watch the attempt counter climb and the next run time push further out:
-
-```bash
-watch -n5 'docker compose -f apps/api/docker-compose.yml exec -T postgres \
-  psql -U brevy -d brevy -c \
-  "SELECT task_identifier, attempts, run_at, last_error FROM graphile_worker.jobs"'
-```
-
-### 5. Exhaustion lands in a human lane
-
-Leave scenario 4 running. After 8 attempts (~1h18m — or edit
-`MAX_ATTEMPTS.processIssue` in `src/queue/retry-policy.ts` to shorten it):
-
-```bash
-curl -s localhost:3333/issues?status=needs_review | jq 'length'
-```
-
-The issue is in `needs_review` with the failure in its history, and the job row
-is gone rather than left permanently failed.
-
-### 6. Human review loop
-
-```bash
-ID=$(curl -s localhost:3333/issues | jq -r '.[0].id')
-curl -s -X POST localhost:3333/issues/$ID/review \
-  -H 'content-type: application/json' \
-  -d '{"decision":"resolve","justification":"retried on a new card","reviewer":"ops@brevy.com"}'
-curl -s localhost:3333/issues/$ID | jq '.status, .timeline'
-```
-
-The status flips to `resolved` and the timeline shows the full journey:
-intake → processing → needs_review → resolved, with the decision attached.
-
-## Failure modes
-
-| If this happens… | What the system does | Where |
-|---|---|---|
-| Worker killed mid-processing | In-flight work is cancelled, the job's lock releases, a restarted worker picks the same issue back up. No work lost. | `tasks/process-issue.ts` |
-| Worker saves a result, then dies before marking the job done | The job runs again; the entry guard sees the issue already finished and exits. **Never decided twice.** | `tasks/process-issue.ts` |
-| Issue saved but the app crashes before queueing it | Cannot happen — save and enqueue are one transaction. | `modules/issues/ingestion/ingest.ts` |
-| Processing fails transiently for under an hour | Retries 8 times with growing gaps totalling ~1h18m; resumes if the dependency recovers. | `queue/retry-policy.ts` |
-| Processing fails for more than an hour | Gives up at ~1h18m and puts the issue in an operator's review lane. Degrades to manual — never silently stuck. | `queue/retry-policy.ts` |
-| A non-transient failure (bad config, bad request) | Fails on the first attempt rather than burning 8 calls over an hour. | `queue/retry-policy.ts` |
-| The same issue arrives twice | The second is ignored — the source ID is unique, and no insert means no job. | `modules/issues/ingestion/ingest.ts` |
-| The same issue is queued twice | `job_key_mode := 'unsafe_dedupe'` collapses it. | `queue/enqueue.ts` |
-| Two workers grab the same job | Postgres row locking hands it to exactly one. | Graphile Worker |
-| Cron fires on several worker replicas | First to queue wins; the rest no-op, guaranteed by ACID. | Graphile Worker |
+Diagrams, the step-by-step trace of one issue, and the module map:
+**[docs/01](docs/readme/01-architecture.md)**.
 
 ## Trade-offs and decisions
 
 ### Database schema
 
-Payment issues share a common head (`external_id`, `type`, `status`, amounts,
-timestamps) and a type-specific tail. The type-specific fields live in a
-`metadata` JSONB column rather than a table per type. That keeps list/filter
-queries simple and intake uniform; the cost is that JSONB fields are not
-first-class columns until a concrete type earns one. Append-only
-`issue_status_history` and `issue_decisions` tables are the audit trail —
-nothing is overwritten, so "what happened?" is a query, not a reconstruction.
+**One table for issues, with the type-specific tail in JSONB.** Every payment
+issue shares a head — source ID, type, status, amount, timestamps — and differs
+only in the tail: a decline carries an error code, a missed installment carries
+days overdue. A table per type would make each tail properly constrained, at the
+cost of a join on every list query and a migration for every new issue type. I
+chose the opposite: uniform intake, single-table queries, and a new issue type
+is a new enum value. The price is that tail fields get no database guarantees.
+That is the right trade while the tails are read by an agent rather than
+filtered on — and a field that earns a query can be promoted to a real column.
 
-At 10,000 issues/day the hot path stays fine on a single Postgres primary, but
-three things earn attention: an index on `issues(status, ingested_at)` for the
-operator board, partitioning or archiving `issue_status_history` once it
-outgrows the working set, and a read replica for list queries so review traffic
-does not contend with intake writes.
+**The audit trail is append-only, in two tables.** One records every status
+transition, the other records every decision and its justification. They are
+separate because transitions happen without decisions — intake, or a worker
+picking work up. Nothing is ever updated in place, so "why is this issue
+resolved?" is a query rather than a reconstruction. Agent decisions also store
+the model's original confidence next to the final adjusted one, because you
+cannot calibrate an agent later if you only kept the number after the code
+adjusted it.
+
+**At 10,000 issues/day** — about 7 writes a minute — a single Postgres primary
+is still comfortable, so the changes are about keeping reads cheap rather than
+surviving load: an index for the operator board's queue query, archiving the
+history table as it outgrows the working set, and a read replica so review
+traffic stops competing with intake. The one I would do first is cursor
+pagination on `GET /issues`, which returns the full set today. It is the only
+item on that list that changes the API contract, so it should land before
+clients depend on the current shape.
+
+Column-by-column detail: **[docs/03](docs/readme/03-database-schema.md)**.
 
 ### Queue design
 
-Mutual exclusion belongs to the **job lease**, not to a
-`UPDATE … WHERE status='pending'` claim. If a worker flips an issue to
-`processing` and dies, a status-based claim would see "already claimed" on
-retry and strand the issue forever. The entry guard
-(`hasLeftTheQueue`) closes a different window: outcome commits, process dies
-before the job is marked complete, job retries against finished work — without
-the guard the issue would be decided twice.
+**The queue owns who is working on an issue; the database owns what is true
+about it.** Keeping those separate is what makes crashes uneventful. The
+tempting shortcut is to claim work by flipping the issue's own status to
+`processing` — but then a worker that dies mid-flight leaves an issue that looks
+claimed forever, with no process alive to finish it. Instead the job carries a
+lease with an expiry. Kill the worker mid-processing and the lease expires, the
+job returns to the pool, and a restarted worker picks the same issue back up.
+The issue's status stays a business fact, never a lock.
 
-If the AI provider is down for more than an hour, eight attempts with Graphile
-Worker's fixed exponential backoff span ~1h18m, then the handler *does not
-throw*: it parks the issue in `needs_review` with the reason recorded. Graphile
-has no "fail permanently" signal; a failed job row is invisible to operators, so
-the dead letter is a human lane.
+That guarantees the work runs *at least* once. The matching guarantee is an
+entry check at the top of the task: if this issue has already been decided, stop
+immediately. It covers the case where the outcome was committed but the process
+died before the job was marked done, so the queue retries against finished work.
+The lease makes work run at least once; the entry check makes the outcome happen
+at most once. Exactly-once is the pair, not either alone.
 
-Enqueue is a SQL `add_job` inside the caller's transaction. Redis/BullMQ was
-rejected because a crash between the issue INSERT and the Redis write strands
-an issue with no job — a dual-write that needs an outbox or sweeper. Postgres
-makes that failure mode impossible by construction.
+**If the AI API is down for an hour**, the job retries 8 times with growing
+gaps, spanning about 1h18m — long enough to ride out a real outage, short enough
+that a payment issue is not left unattended. What happens *after* that matters
+more than the number: the task stops failing and instead parks the issue in
+`needs_review` with the reason recorded. A permanently-failed job row would be
+invisible, because operators watch the review queue and not the jobs table. The
+dead letter has to be a human lane or it is not a dead letter.
 
-## AI agent decisioning
+**Postgres over Redis** for the queue itself, for one reason: enqueuing is a SQL
+call, so it joins the same transaction as the issue insert. With an external
+queue those are two writes to two systems, and a crash in between strands an
+issue that nobody will ever process — a problem you then solve with an outbox
+table or a sweeper. Postgres makes that failure impossible by construction
+instead. The cost is throughput, and that ceiling is far away at this volume.
 
-Design: `docs/superpowers/specs/2026-07-30-ai-agent-decisioning-design.md`.
+Failure-mode table and the reasoning behind each: **[docs/04](docs/readme/04-queue-design.md)**.
 
-### Architecture — why one agent
+### Agent architecture
 
-One `query()` call per issue. Capabilities are skills (procedure, one per
-policy domain) and typed in-process tools (`get_customer`, `get_transaction`),
-not subagents. `policies.md` is ~90 lines; everything fits one context.
-Subagents would cost 3–4 round trips, hand results back summarised (lossy —
-the citation trace must survive verbatim), and be harder to test. A colleague
-asking "why not a single agent?" is asking the question we already answered by
-choosing exactly that.
+**One agent, specialised by instructions rather than by more agents.** The
+colleague suggesting a single agent is proposing what is already here, so the
+real question is why I did not decompose. The entire policy document is ~90
+lines and fits comfortably in one context. Splitting it into a subagent per
+policy domain would add round trips per issue and, more importantly, force
+results through a summarisation step — and summarising is lossy in exactly the
+wrong place, because the citation trail is the product. So specialisation lives
+in *skills* (one procedure per policy domain) and typed tools for fetching
+customer and transaction records. Same division of labour, no orchestration tax.
 
-`decide()` is the only non-deterministic step. After it returns, deterministic
-code verifies cited facts against source records, scores confidence, routes
-into a band, and persists one transaction. Nothing in `queue/` knows about
-Anthropic — `mapAgentError` is the only place that maps provider faults onto
-the existing `RetryableError` / `TerminalError` budget.
+**The model proposes; code disposes.** The agent call is the only
+non-deterministic step in the service, and it is fenced on both sides. It
+returns a structured verdict with a confidence score and a citation for every
+rule it applied. Deterministic code then re-checks each cited fact against the
+source records, lowers confidence for anything the agent could not verify, and
+applies hard ceilings drawn from the records themselves — a fraud reason or a
+large dispute caps confidence no matter how certain the model sounds. Code can
+only subtract, never add. The final score picks the lane: high confidence
+executes, middling confidence executes but is flagged, low confidence parks for
+a human with the agent's reasoning attached.
 
-### How confidence is derived
+**Untrusted text is contained by design, not by detection.** A dispute's reason
+field is whatever a customer typed, so it is treated as data throughout:
+delimited and sanitised on the way in, and constrained on the way out to a
+three-value verdict enum with no free-text action channel. Cited facts are
+re-checked against source records and confidence ceilings are computed from
+those records, so no instruction hidden in issue text can raise a score or
+invent a fact. Two things follow: an injection attempt surfaces as a
+verification failure rather than passing silently, and the blast radius is small
+because "execute" means changing a status on our own record — not moving money.
+That last point is doing real work, and it stops being true the day an action
+issues a refund, which is why splitting decide from execute is next on the list.
 
-```
-final = clamp(base − penalties, 0, min(caps))
-```
-
-The model owns the base; code owns the ceiling and can only subtract. Layers
-are **ordered, not weighted** — a weighted blend would let a 0.99-confident
-model dilute a fraud cap. Any factor can veto; none can rescue.
-
-| Cap | Ceiling | Policy |
-| --- | --- | --- |
-| Fraud / unauthorized reason | 0.69 | `policies.md:63` |
-| Issue type not covered | 0.69 | `:86` |
-| Dispute amount > $200 | 0.89 | `:53` |
-| Lifetime spend > $2000 | 0.89 | `:88` |
-
-Penalties: each `cant_evaluate` trace node −0.15; a declared `dataGap` −0.10.
-**These magnitudes are judgment calls**, not empirical. They live as named
-constants with a test each so calibration is a data edit. Real calibration
-would come from shadow mode measuring agent-vs-human agreement — this cycle
-does not build that.
-
-Routing bands: `≥0.90` → `auto_execute`; `0.70–0.89` → `execute_flagged`;
-`<0.70` → `human_decision` (park; recommendation kept for the reviewer).
-
-### Prompt injection
-
-Six layers bound what untrusted issue text can do:
-
-1. Delimited `<issue_data>` framing + angle-bracket stripping / length caps
-2. System prompt trust boundary (policy + system prompt only are instructions)
-3. Schema-constrained output (`recommendation` is a three-value enum; no
-   free-text action channel)
-4. `citedFacts` re-checked against source records (`verify.ts`)
-5. Caps computed from source rows, never from model text
-6. `Read` confined by a `PreToolUse` hook to `policies.md` and skills — `.env`
-   and fixture JSON are denied
-
-Two properties follow: injection is **detectable** (it surfaces as a
-verification failure or a denied read), and the blast radius is bounded
-because "execute" means a status transition on the issue itself, not money
-movement against a payment provider.
-
-### The five issues
-
-Offline replay of recorded agent responses through verify / score / route
-(`pnpm --filter api demo`):
-
-```
-iss_001  decline
-  base (model self-report)      0.72
-  − trace node :13 cant_evaluate0.15
-  − trace node :16 cant_evaluate0.15
-  − trace node :14 cant_evaluate0.15
-  − data gap declared           0.10
-  → 17%   human_decision → needs_review
-  This insufficient-funds decline cannot be auto-resolved under any reading of policies.md:17, so the only live question is whether the retry budget is exhausted — and the policy contradicts itself there. With auto_retry_count=2, policies.md:13 ("up to 3 attempts total") says the budget is spent if the original charge counts as attempt one, while policies.md:16 ("escalate when the third retry fails") says a third retry is still owed. The case turns exactly on that difference, so it goes to a human; the customer is otherwise unremarkable (low risk, 11/12 successful payments, lifetime spend $1,847.50, below the $2,000 high-value bar at policies.md:88).
-
-iss_002  missed_installment
-  base (model self-report)      0.78
-  − trace node :41 cant_evaluate0.15
-  − trace node :37 cant_evaluate0.15
-  − data gap declared           0.10
-  → 38%   human_decision → needs_review
-  Auto-resolve is off the table: the account is 5 days overdue (limit is 3) and the customer's risk score is "medium", not "low" — two of the three required conditions fail outright, and the third (successful retry) can't be evaluated because no payment processor is reachable. Neither escalation trigger clearly fires either: 5 days is inside the 7-day grace period, and while the customer holds 2 concurrent installment plans, the data shows plan count only — not whether the second plan is also delinquent. That leaves a case the policy neither auto-resolves nor escalates, so it goes to a human, who can attempt the retry and check the sibling plan's standing.
-
-iss_003  dispute
-  base (model self-report)      0.93
-  − trace node :55 cant_evaluate0.15
-  − data gap declared           0.10
-  cap policies.md:53            0.89  ← dispute amount exceeds $200
-  → 68%   human_decision → needs_review
-  Escalate. The item-not-received auto-resolve condition fails because tracking shows the package still in_transit at a Chicago distribution center with no delivery confirmation, and the $249 dispute amount independently exceeds the $200 escalation threshold. The customer is not high-value ($312 lifetime spend) and merchant fulfilment history is unavailable, but neither changes the result.
-
-iss_004  refund_request
-  base (model self-report)      0.93
-  → 93%   auto_execute → resolved
-  Changed-mind refund at day 3 of the 14-day window with shipping.status confirmed as "not_shipped", so both halves of the policies.md:77 auto-resolve condition are satisfied and no escalation trigger at :78 applies. Because the transaction carries an installment plan, :79 limits the refund to paid installments only: refund $37.25 (1 of 4 paid) and cancel the remaining 3 — the issue payload's $149 is the full plan value and must not be paid out. Lifetime spend of $1,847.50 is under the :88 high-value threshold, though close enough to it to be worth noting.
-
-iss_005  decline
-  base (model self-report)      0.72
-  − trace node :25 cant_evaluate0.15
-  − data gap declared           0.10
-  cap policies.md:88            0.89  ← customer lifetime spend exceeds $2000
-  → 47%   human_decision → needs_review
-  Expired-card declines can never auto-resolve (policies.md:26) — the customer must supply a new payment method, and retrying is explicitly ruled out (:23). The escalation trigger at :25 requires no response after 48 hours AND a recurring subscription; the recurring half is confirmed (is_recurring true, 14 months active), but there is no notification-sent timestamp, response record, or days_since_purchase in the payload, so the 48-hour half cannot be evaluated and escalating on half a conjunction would be a guess. Routing to a human who can check the notification log and drive the payment-method update, which is time-sensitive since the next box ships 2025-01-20.
-```
-
-Re-record after prompt / skill / policy edits:
-
-```bash
-pnpm --filter api record:decisions
-```
-
-### Data file moves
-
-`policies.md`, `customers.json`, and `transactions.json` live under
-`apps/api/src/modules/issues/ai/data/` (and the payments feed under
-`ingestion/sources/data/`). The agent reads them at runtime, so a repo-root
-path breaks under `tsc` output or an apps/api-only deploy. Line numbers in
-`policies.md` are the citation anchor — one runtime copy is a correctness
-requirement, not tidiness.
-
-### Known follow-up
-
-`POLICY_TEXT` in `apps/web/src/shared/policies/data/fixtures/policies.ts` is a
-hand-copied duplicate of `policies.md` that can drift and silently break the
-line-number citations the UI renders. Generating it from the source file is a
-build-step change, tracked separately.
+Confidence maths, the containment layers in full, and all five recorded
+decisions with commentary: **[docs/05](docs/readme/05-agent-architecture.md)**.
 
 ## What I'd do differently
 
-1. **Shadow-mode calibration** — measure agent-vs-human agreement on parked
-   cases and tighten penalty magnitudes from data rather than judgment.
-2. **Split `decide_issue` from `execute_action`** once actions move money —
-   their retry semantics diverge sharply (re-decide is safe; re-refund is not).
-3. **Webhook intake + a durable cursor** for a real upstream API — the full
-   re-scan works only because the demo feed is tiny and idempotent.
-4. **A circuit breaker** so a provider outage does not burn every issue's retry
-   budget in parallel.
-5. **Per-worker test databases** so Vitest can run files in parallel again
-   without trading isolation for serial throughput.
+Ranked by what unblocks the most:
+
+1. **Shadow-mode calibration** — every confidence penalty and ceiling is a
+   judgment call, tested but not measured. Run the agent alongside human
+   deciders and fit the numbers to the agreement data. First because everything
+   downstream — where the auto-execute threshold belongs, whether the flagged
+   middle band should exist at all — is guesswork without it.
+2. **Split deciding from executing** — safe to combine only while "execute"
+   means a status change. Once an action issues a refund the two halves have
+   opposite retry semantics: re-deciding is free, re-refunding is a duplicate
+   payout.
+3. **Webhook intake with a durable cursor** — the cron re-reads the whole feed
+   every minute and relies on source-ID uniqueness to make that harmless. Fine
+   for five bundled rows; a full scan per minute against a real upstream.
+4. **A circuit breaker around the provider** — an outage today burns every
+   in-flight issue's retry budget in parallel, each one independently
+   rediscovering that the provider is down.
+5. **Cursor pagination on `GET /issues`** — routine work, but it changes the API
+   contract, so it should happen before external clients exist.
+6. **Per-worker test databases** — API tests run serially because they share one
+   database. Isolation is right; serial throughput is the price.
+
+Reasoning for each, plus a known drift risk in the web app's copied policy
+fixture: **[docs/06](docs/readme/06-what-id-do-differently.md)**.
