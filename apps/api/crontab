@@ -1,0 +1,12 @@
+# Pull new issues from the upstream system.
+#
+# max=1 (crontab shorthand for max_attempts): this tick IS the retry. Ingestion
+# is idempotent and runs every minute, so retrying inside the job would only
+# hammer the source for no gain. (The budget lives here, not in
+# queue/retry-policy.ts — cron jobs are queued by the worker itself and never
+# pass through enqueue().)
+#
+# No `?fill=` backfill: ingestion re-reads the entire feed and dedupes on the
+# source's id, so a tick missed during downtime is fully covered by the next
+# one. Backfilling would only enqueue extra ingest jobs that all no-op.
+* * * * * ingest_issues ?max=1

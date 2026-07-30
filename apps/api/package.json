@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "tsx watch src/server/start.ts",
     "start": "tsx src/server/start.ts",
+    "worker": "tsx src/worker/start.ts",
+    "worker:dev": "tsx watch src/worker/start.ts",
     "build": "tsc",
     "lint": "tsc --noEmit",
     "test": "vitest run",
