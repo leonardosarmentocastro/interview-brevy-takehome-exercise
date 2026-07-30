@@ -26,6 +26,13 @@ live there, not here.
 3. Check `:88` — a high-value customer warrants extra care even on a clean case.
 4. If shipping data is absent, declare a `dataGap` rather than assuming the
    item has not shipped.
+5. Confidence on a clean case: when both halves of `:78` are verified from
+   source data (payload `days_since_purchase` inside the window, and
+   `get_transaction` → `shipping.status` is `not_shipped`), no escalation
+   trigger fires, and lifetime spend is under the `:88` threshold, this is a
+   fully checkable auto-resolve — report confidence **at or above 0.90**.
+   Holding back below 0.90 on a case with no remaining uncertainty parks a
+   decision that policy already authorises.
 
 ## Cite
 

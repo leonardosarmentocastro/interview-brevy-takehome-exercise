@@ -3517,7 +3517,7 @@ Produces the Part 2 deliverable: how each of the five issues was processed.
 - Consumes: everything above.
 - Produces: `npm run record:decisions`, `npm run demo`.
 
-- [ ] **Step 1: Write the recording script**
+- [x] **Step 1: Write the recording script**
 
 Create `apps/api/scripts/record-agent-decisions.ts`:
 
@@ -3560,7 +3560,7 @@ for (const input of fetchIssues()) {
 }
 ```
 
-- [ ] **Step 2: Add the scripts to package.json**
+- [x] **Step 2: Add the scripts to package.json**
 
 In `apps/api/package.json`, add:
 
@@ -3569,12 +3569,12 @@ In `apps/api/package.json`, add:
     "demo": "tsx scripts/demo.ts",
 ```
 
-- [ ] **Step 3: Record the five decisions**
+- [x] **Step 3: Record the five decisions**
 
 Run: `npm run record:decisions`
 Expected: five files written to `src/modules/issues/ai/__tests__/recorded/`, one line printed per issue.
 
-- [ ] **Step 4: Write the golden test**
+- [x] **Step 4: Write the golden test**
 
 Create `apps/api/src/modules/issues/ai/__tests__/seed-decisions.test.ts`:
 
@@ -3645,14 +3645,14 @@ describe("recorded agent decisions", () => {
 });
 ```
 
-- [ ] **Step 5: Run the golden test**
+- [x] **Step 5: Run the golden test**
 
 Run: `npx vitest run src/modules/issues/ai/__tests__/seed-decisions.test.ts`
 Expected: PASS
 
 If `iss_004` does not reach the auto-execute band, do **not** weaken the test. The prompt or the refunds skill is underspecified — the clean case is the one the design must let through. Tune `SKILL.md`, re-record, and re-run.
 
-- [ ] **Step 6: Write the demo script**
+- [x] **Step 6: Write the demo script**
 
 Create `apps/api/scripts/demo.ts`:
 
@@ -3705,12 +3705,12 @@ for (const input of fetchIssues()) {
 }
 ```
 
-- [ ] **Step 7: Run the demo**
+- [x] **Step 7: Run the demo**
 
 Run: `npm run demo`
 Expected: five blocks showing the confidence arithmetic and the routing outcome for each issue.
 
-- [ ] **Step 8: Document it in the README**
+- [x] **Step 8: Document it in the README**
 
 Add an **AI agent decisioning** section to `README.md` covering:
 
@@ -3721,12 +3721,12 @@ Add an **AI agent decisioning** section to `README.md` covering:
 5. **Data file moves**, with the reason: runtime reads must ship inside the package, and `policies.md` line numbers are the citation anchor so one runtime copy is a correctness requirement.
 6. **Known follow-up:** `POLICY_TEXT` in `apps/web/src/shared/policies/data/fixtures/policies.ts` is a hand-copied duplicate of `policies.md` that can drift and silently break the line-number citations the UI renders. Generating it from the source file is a build-step change, tracked separately.
 
-- [ ] **Step 9: Run the full suite**
+- [x] **Step 9: Run the full suite**
 
 Run: `npm test`
 Expected: PASS
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add scripts/record-agent-decisions.ts scripts/demo.ts package.json \
@@ -3746,8 +3746,8 @@ arithmetic per issue so the routing is checkable by eye."
 
 After Task 15, confirm the whole thing end to end:
 
-- [ ] `npm test` — full suite green
-- [ ] `npm run lint` — `tsc --noEmit` clean
-- [ ] `npm run demo` — five issues, covering more than one routing band
-- [ ] `git log --oneline feat/background-processing-queue..HEAD` — 16 commits, one per task (15 numbered plus Task 10a)
-- [ ] The agent cannot read `.env`: `grep -rn '"Read"' src/modules/issues/ai/agent/run.ts` shows the `PreToolUse` guard alongside it (Task 10a)
+- [x] `npm test` — full suite green
+- [x] `npm run lint` — `tsc --noEmit` clean
+- [x] `npm run demo` — five issues, covering more than one routing band
+- [x] `git log --oneline feat/background-processing-queue..HEAD` — 16 commits, one per task (15 numbered plus Task 10a)
+- [x] The agent cannot read `.env`: `grep -rn '"Read"' src/modules/issues/ai/agent/run.ts` shows the `PreToolUse` guard alongside it (Task 10a)

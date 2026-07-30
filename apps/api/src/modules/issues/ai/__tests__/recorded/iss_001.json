@@ -1,0 +1,112 @@
+{
+  "recommendation": "human_review",
+  "confidence": 0.72,
+  "reasoning": "This insufficient-funds decline cannot be auto-resolved under any reading of policies.md:17, so the only live question is whether the retry budget is exhausted — and the policy contradicts itself there. With auto_retry_count=2, policies.md:13 (\"up to 3 attempts total\") says the budget is spent if the original charge counts as attempt one, while policies.md:16 (\"escalate when the third retry fails\") says a third retry is still owed. The case turns exactly on that difference, so it goes to a human; the customer is otherwise unremarkable (low risk, 11/12 successful payments, lifetime spend $1,847.50, below the $2,000 high-value bar at policies.md:88).",
+  "trace": [
+    {
+      "src": 17,
+      "rule": "Insufficient funds — can auto-resolve: No; requires successful retry or human decision",
+      "status": "fired",
+      "evidence": "transaction.failure_reason is \"insufficient_funds\" and transaction.status is \"failed\"; the rule categorically forbids auto_resolve, leaving human_review or escalate."
+    },
+    {
+      "src": 13,
+      "rule": "Auto-retry: up to 3 attempts total",
+      "status": "cant_evaluate",
+      "evidence": "auto_retry_count is 2. If the original charge counts toward the three, the budget is exhausted and this should escalate; if it does not, one retry remains. The policy does not define whether the initial attempt counts."
+    },
+    {
+      "src": 16,
+      "rule": "Escalate when: third retry fails, or customer contacts support",
+      "status": "cant_evaluate",
+      "evidence": "Only 2 retries have occurred, so on a literal reading no third retry has failed and escalation is not triggered — directly at odds with the :13 reading that the 3-attempt budget is already spent. No field indicates the customer contacted support."
+    },
+    {
+      "src": 14,
+      "rule": "Retry timing: wait 2 days between retries",
+      "status": "cant_evaluate",
+      "evidence": "Neither the issue payload nor the transaction record carries a timestamp for the last retry attempt (transaction has only created_at), and the payload has no days_since_purchase field, so retry spacing cannot be checked."
+    },
+    {
+      "src": 15,
+      "rule": "Customer notification: send after the second failed attempt",
+      "status": "fired",
+      "evidence": "auto_retry_count is 2, so the second-attempt threshold is reached and customer notification is due; this is a notification action, not a resolution path."
+    },
+    {
+      "src": 88,
+      "rule": "High-value customers (lifetime spend > $2000) get extra care / consider escalating",
+      "status": "not_met",
+      "evidence": "customer.lifetime_spend is 1847.5, below the $2,000 threshold, so the high-value escalation nudge does not apply."
+    },
+    {
+      "src": 86,
+      "rule": "When in doubt, escalate — a human reviewing a borderline case costs less than a wrong automated decision",
+      "status": "fired",
+      "evidence": "The :13/:16 contradiction makes the retry-budget question undecidable from the document, so the case is routed to a human rather than guessed; escalate is reserved for the confirmed third-retry failure at :16, which has not been established."
+    }
+  ],
+  "citedFacts": [
+    {
+      "source": "issue",
+      "path": "error_code",
+      "value": "insufficient_funds"
+    },
+    {
+      "source": "issue",
+      "path": "auto_retry_count",
+      "value": "2"
+    },
+    {
+      "source": "issue",
+      "path": "amount",
+      "value": "89.99"
+    },
+    {
+      "source": "transaction",
+      "path": "status",
+      "value": "failed"
+    },
+    {
+      "source": "transaction",
+      "path": "failure_reason",
+      "value": "insufficient_funds"
+    },
+    {
+      "source": "transaction",
+      "path": "installment_plan",
+      "value": "null"
+    },
+    {
+      "source": "transaction",
+      "path": "created_at",
+      "value": "2025-01-13T03:20:00Z"
+    },
+    {
+      "source": "customer",
+      "path": "lifetime_spend",
+      "value": "1847.5"
+    },
+    {
+      "source": "customer",
+      "path": "risk_score",
+      "value": "low"
+    },
+    {
+      "source": "customer",
+      "path": "successful_payments",
+      "value": "11"
+    },
+    {
+      "source": "customer",
+      "path": "failed_payments",
+      "value": "3"
+    },
+    {
+      "source": "customer",
+      "path": "disputes_filed",
+      "value": "0"
+    }
+  ],
+  "dataGap": "No timestamp for the most recent retry attempt is available (the transaction exposes only created_at, and the issue payload has no days_since_purchase), so the 2-days-between-retries rule at policies.md:14 could not be verified. Separately, policies.md is internally inconsistent for this case: :13 counts \"3 attempts total\" while :16 counts \"three retries\", and the document never says whether the original charge is attempt one — a human should settle that reading before this class of issue can be automated."
+}

@@ -42,8 +42,8 @@ Two processes, one database.
                     process_issue(issueId)
                       1. entry guard: already finished? → no-op
                       2. pending → processing (recorded once)
-                      3. decide()          ← the seam; v1 stub
-                      4. apply outcome in one transaction
+                      3. decide()          ← agent + verify/score/route
+                      4. applyAgentDecision (or park) in one transaction
 ```
 
 ## How one issue travels the system
@@ -60,9 +60,10 @@ Two processes, one database.
 4. **Worker claims the job** — `apps/api/src/modules/issues/tasks/process-issue.ts`
    loads the issue, returns early if it has already left the queue, flips
    `pending → processing`, and calls `decide()`.
-5. **Outcome** — v1's `decide()` stub always succeeds, so the handler parks the
-   issue in `needs_review` via `apps/api/src/modules/issues/repository.ts`
-   (`parkForHumanReview`, `actor: 'system'`). A human finishes it with
+5. **Outcome** — `decide()` runs the agent, then deterministic verify / score /
+   route. High-confidence cases resolve or escalate via
+   `applyAgentDecision`; anything below the floor (or with no usable verdict)
+   parks in `needs_review`. A human can still finish parked work with
    `POST /issues/:id/review`.
 
 ## Where state lives
@@ -109,8 +110,9 @@ pnpm --filter api dev             # terminal 2
 curl -s localhost:3333/issues | jq '.[] | {external_id: .externalId, status}'
 ```
 
-Within a minute the cron ingests all 5 issues and the worker moves each to
-`needs_review`.
+Within a minute the cron ingests all 5 issues and the worker runs each through
+`decide()` — clean high-confidence cases resolve; the rest park in
+`needs_review` (requires `ANTHROPIC_API_KEY` on the worker).
 
 ### 2. Idempotency
 
@@ -227,30 +229,141 @@ rejected because a crash between the issue INSERT and the Redis write strands
 an issue with no job — a dual-write that needs an outbox or sweeper. Postgres
 makes that failure mode impossible by construction.
 
-### Agent architecture
+## AI agent decisioning
 
-This cycle ships a `decide()` seam whose v1 body is a stub: every successfully
-processed issue lands in `needs_review` for a human. That is deliberate — the
-pipeline (intake, queue, retry, crash recovery, audit) is real end to end, and
-the next cycle swaps one function for an LLM call without touching the queue
-layer. Fabricating a fake verdict would have tested nothing about intelligence
-and lied about what the system decided.
+Design: `docs/superpowers/specs/2026-07-30-ai-agent-decisioning-design.md`.
 
-The planned AI layer (see
-`docs/superpowers/specs/2026-07-27-ai-decisioning-layer-design.md`) uses the
-LLM as the decider: `policies.md` plus the issue JSON in, a structured
-`Decision` (verdict, cited `trace[]`, actions) out, with guardrails (citation
-required before execution, structured output, temperature 0). A single general
-agent is preferred over specialised per-type agents for v1 — one prompt, one
-schema, one place to tighten policy — with specialised agents deferred until a
-type's failure mode clearly diverges (e.g. money-moving refunds vs. soft
-retries).
+### Architecture — why one agent
+
+One `query()` call per issue. Capabilities are skills (procedure, one per
+policy domain) and typed in-process tools (`get_customer`, `get_transaction`),
+not subagents. `policies.md` is ~90 lines; everything fits one context.
+Subagents would cost 3–4 round trips, hand results back summarised (lossy —
+the citation trace must survive verbatim), and be harder to test. A colleague
+asking "why not a single agent?" is asking the question we already answered by
+choosing exactly that.
+
+`decide()` is the only non-deterministic step. After it returns, deterministic
+code verifies cited facts against source records, scores confidence, routes
+into a band, and persists one transaction. Nothing in `queue/` knows about
+Anthropic — `mapAgentError` is the only place that maps provider faults onto
+the existing `RetryableError` / `TerminalError` budget.
+
+### How confidence is derived
+
+```
+final = clamp(base − penalties, 0, min(caps))
+```
+
+The model owns the base; code owns the ceiling and can only subtract. Layers
+are **ordered, not weighted** — a weighted blend would let a 0.99-confident
+model dilute a fraud cap. Any factor can veto; none can rescue.
+
+| Cap | Ceiling | Policy |
+| --- | --- | --- |
+| Fraud / unauthorized reason | 0.69 | `policies.md:63` |
+| Issue type not covered | 0.69 | `:86` |
+| Dispute amount > $200 | 0.89 | `:53` |
+| Lifetime spend > $2000 | 0.89 | `:88` |
+
+Penalties: each `cant_evaluate` trace node −0.15; a declared `dataGap` −0.10.
+**These magnitudes are judgment calls**, not empirical. They live as named
+constants with a test each so calibration is a data edit. Real calibration
+would come from shadow mode measuring agent-vs-human agreement — this cycle
+does not build that.
+
+Routing bands: `≥0.90` → `auto_execute`; `0.70–0.89` → `execute_flagged`;
+`<0.70` → `human_decision` (park; recommendation kept for the reviewer).
+
+### Prompt injection
+
+Six layers bound what untrusted issue text can do:
+
+1. Delimited `<issue_data>` framing + angle-bracket stripping / length caps
+2. System prompt trust boundary (policy + system prompt only are instructions)
+3. Schema-constrained output (`recommendation` is a three-value enum; no
+   free-text action channel)
+4. `citedFacts` re-checked against source records (`verify.ts`)
+5. Caps computed from source rows, never from model text
+6. `Read` confined by a `PreToolUse` hook to `policies.md` and skills — `.env`
+   and fixture JSON are denied
+
+Two properties follow: injection is **detectable** (it surfaces as a
+verification failure or a denied read), and the blast radius is bounded
+because "execute" means a status transition on the issue itself, not money
+movement against a payment provider.
+
+### The five issues
+
+Offline replay of recorded agent responses through verify / score / route
+(`pnpm --filter api demo`):
+
+```
+iss_001  decline
+  base (model self-report)      0.72
+  − trace node :13 cant_evaluate0.15
+  − trace node :16 cant_evaluate0.15
+  − trace node :14 cant_evaluate0.15
+  − data gap declared           0.10
+  → 17%   human_decision → needs_review
+  This insufficient-funds decline cannot be auto-resolved under any reading of policies.md:17, so the only live question is whether the retry budget is exhausted — and the policy contradicts itself there. With auto_retry_count=2, policies.md:13 ("up to 3 attempts total") says the budget is spent if the original charge counts as attempt one, while policies.md:16 ("escalate when the third retry fails") says a third retry is still owed. The case turns exactly on that difference, so it goes to a human; the customer is otherwise unremarkable (low risk, 11/12 successful payments, lifetime spend $1,847.50, below the $2,000 high-value bar at policies.md:88).
+
+iss_002  missed_installment
+  base (model self-report)      0.78
+  − trace node :41 cant_evaluate0.15
+  − trace node :37 cant_evaluate0.15
+  − data gap declared           0.10
+  → 38%   human_decision → needs_review
+  Auto-resolve is off the table: the account is 5 days overdue (limit is 3) and the customer's risk score is "medium", not "low" — two of the three required conditions fail outright, and the third (successful retry) can't be evaluated because no payment processor is reachable. Neither escalation trigger clearly fires either: 5 days is inside the 7-day grace period, and while the customer holds 2 concurrent installment plans, the data shows plan count only — not whether the second plan is also delinquent. That leaves a case the policy neither auto-resolves nor escalates, so it goes to a human, who can attempt the retry and check the sibling plan's standing.
+
+iss_003  dispute
+  base (model self-report)      0.93
+  − trace node :55 cant_evaluate0.15
+  − data gap declared           0.10
+  cap policies.md:53            0.89  ← dispute amount exceeds $200
+  → 68%   human_decision → needs_review
+  Escalate. The item-not-received auto-resolve condition fails because tracking shows the package still in_transit at a Chicago distribution center with no delivery confirmation, and the $249 dispute amount independently exceeds the $200 escalation threshold. The customer is not high-value ($312 lifetime spend) and merchant fulfilment history is unavailable, but neither changes the result.
+
+iss_004  refund_request
+  base (model self-report)      0.93
+  → 93%   auto_execute → resolved
+  Changed-mind refund at day 3 of the 14-day window with shipping.status confirmed as "not_shipped", so both halves of the policies.md:77 auto-resolve condition are satisfied and no escalation trigger at :78 applies. Because the transaction carries an installment plan, :79 limits the refund to paid installments only: refund $37.25 (1 of 4 paid) and cancel the remaining 3 — the issue payload's $149 is the full plan value and must not be paid out. Lifetime spend of $1,847.50 is under the :88 high-value threshold, though close enough to it to be worth noting.
+
+iss_005  decline
+  base (model self-report)      0.72
+  − trace node :25 cant_evaluate0.15
+  − data gap declared           0.10
+  cap policies.md:88            0.89  ← customer lifetime spend exceeds $2000
+  → 47%   human_decision → needs_review
+  Expired-card declines can never auto-resolve (policies.md:26) — the customer must supply a new payment method, and retrying is explicitly ruled out (:23). The escalation trigger at :25 requires no response after 48 hours AND a recurring subscription; the recurring half is confirmed (is_recurring true, 14 months active), but there is no notification-sent timestamp, response record, or days_since_purchase in the payload, so the 48-hour half cannot be evaluated and escalating on half a conjunction would be a guess. Routing to a human who can check the notification log and drive the payment-method update, which is time-sensitive since the next box ships 2025-01-20.
+```
+
+Re-record after prompt / skill / policy edits:
+
+```bash
+pnpm --filter api record:decisions
+```
+
+### Data file moves
+
+`policies.md`, `customers.json`, and `transactions.json` live under
+`apps/api/src/modules/issues/ai/data/` (and the payments feed under
+`ingestion/sources/data/`). The agent reads them at runtime, so a repo-root
+path breaks under `tsc` output or an apps/api-only deploy. Line numbers in
+`policies.md` are the citation anchor — one runtime copy is a correctness
+requirement, not tidiness.
+
+### Known follow-up
+
+`POLICY_TEXT` in `apps/web/src/shared/policies/data/fixtures/policies.ts` is a
+hand-copied duplicate of `policies.md` that can drift and silently break the
+line-number citations the UI renders. Generating it from the source file is a
+build-step change, tracked separately.
 
 ## What I'd do differently
 
-1. **Put a real model behind `decide()`** — the seam is ready; the missing
-   piece is prompt assembly + Anthropic (or equivalent) with
-   `mapAnthropicError()` classifying 429/5xx as retryable.
+1. **Shadow-mode calibration** — measure agent-vs-human agreement on parked
+   cases and tighten penalty magnitudes from data rather than judgment.
 2. **Split `decide_issue` from `execute_action`** once actions move money —
    their retry semantics diverge sharply (re-decide is safe; re-refund is not).
 3. **Webhook intake + a durable cursor** for a real upstream API — the full

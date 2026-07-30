@@ -26,6 +26,12 @@ const decisionRow = (
   decision: "resolve",
   justification: "retry succeeded",
   decidedBy: "agent_lee",
+  recommendation: null,
+  confidence: null,
+  confidenceBase: null,
+  routingBand: null,
+  scoreBreakdown: null,
+  trace: null,
   ...over,
 });
 
