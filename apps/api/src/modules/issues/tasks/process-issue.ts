@@ -1,9 +1,21 @@
 import { decide } from "@/modules/issues/decide";
-import { hasLeftTheQueue } from "@/modules/issues/lifecycle";
 import { issuesRepository } from "@/modules/issues/repository";
+import type { IssueStatus } from "@/modules/issues/types";
 import { isRetryable, MAX_ATTEMPTS } from "@/queue/retry-policy";
 
 export type ProcessIssuePayload = { issueId: string };
+
+// The only two statuses the worker is responsible for.
+const OWNED_BY_QUEUE: IssueStatus[] = ["pending", "processing"];
+
+/**
+ * Has this issue already passed out of the queue's control?
+ *
+ * Deliberately NOT the same question as `state-machine.ts`, which maps human
+ * review verbs to statuses.
+ */
+const hasLeftTheQueue = (status: IssueStatus): boolean =>
+  !OWNED_BY_QUEUE.includes(status);
 
 /** The subset of Graphile Worker's `helpers` this handler actually uses. */
 export type ProcessHelpers = {
@@ -20,7 +32,10 @@ export const processIssue = async (
 ): Promise<void> => {
   const issue = await issuesRepository.findByIdOrExternalId(issueId);
   if (!issue) return; // deleted between enqueue and run — nothing to do
-  if (hasLeftTheQueue(issue.status)) return; // entry guard
+  // Entry guard. Closes the window where the outcome transaction commits and
+  // the process dies before the job is marked complete: the job is retried
+  // against finished work, and without this the issue would be decided twice.
+  if (hasLeftTheQueue(issue.status)) return;
 
   await issuesRepository.beginProcessing(issue);
   const processing = { ...issue, status: "processing" as const };
