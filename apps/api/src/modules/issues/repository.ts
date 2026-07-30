@@ -50,6 +50,55 @@ export const issuesRepository = {
     return created;
   },
 
+  /**
+   * Marks the start of processing. Idempotent: a retried job re-enters here
+   * with the issue already `processing`, and the transition must stay a single
+   * fact in the audit trail rather than gaining a row per retry.
+   *
+   * Note this is NOT a mutual-exclusion claim. Only one worker holds a given
+   * job at a time — that is the job lease's guarantee, and using this update as
+   * a lock instead would strand any issue whose worker died mid-job.
+   */
+  async beginProcessing(issue: IssueRow): Promise<void> {
+    if (issue.status === "processing") return;
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(issues)
+        .set({ status: "processing" })
+        .where(eq(issues.id, issue.id));
+      await tx.insert(issueStatusHistory).values({
+        issueId: issue.id,
+        fromStatus: issue.status,
+        toStatus: "processing",
+        actor: "system",
+      });
+    });
+  },
+
+  /**
+   * Hands the issue to a human, recording why.
+   *
+   * Both exits from the worker land here: the ordinary one (v1 has no decider,
+   * so every issue needs a person) and the failure one (processing failed
+   * permanently). No decision row is written — nothing has decided anything.
+   */
+  async parkForHumanReview(issue: IssueRow, reason: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(issues)
+        .set({ status: "needs_review" })
+        .where(eq(issues.id, issue.id));
+      await tx.insert(issueStatusHistory).values({
+        issueId: issue.id,
+        fromStatus: issue.status,
+        toStatus: "needs_review",
+        actor: "system",
+        reason,
+      });
+    });
+  },
+
   async list(filters?: { statuses?: IssueStatus[] }): Promise<IssueRow[]> {
     // `.where(undefined)` is a drizzle no-op, so an absent/empty filter lists all.
     const where = filters?.statuses?.length

@@ -22,6 +22,13 @@
       "when": 1785374804788,
       "tag": "0002_slippery_titania",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785375195754,
+      "tag": "0003_dizzy_anthem",
+      "breakpoints": true
     }
   ]
 }
