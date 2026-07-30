@@ -2609,7 +2609,7 @@ what makes agent calibration measurable later."
 - Consumes: `IssueRow`, `IssueStatus`; `AgentRecommendation`, `TraceNode` (Task 2); `RoutingBand`, `AppliedVerb` (Task 6); `ScoreBreakdown` (Task 5).
 - Produces: `issuesRepository.applyAgentDecision(issue: IssueRow, params: AgentDecisionParams): Promise<void>`, `issuesRepository.listAwaitingAsyncReview(): Promise<IssueRow[]>`, exported type `AgentDecisionParams`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/api/src/modules/issues/__tests__/apply-agent-decision.test.ts`:
 
@@ -2711,12 +2711,12 @@ describe("applyAgentDecision", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/modules/issues/__tests__/apply-agent-decision.test.ts`
 Expected: FAIL — `issuesRepository.applyAgentDecision is not a function`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `apps/api/src/modules/issues/repository.ts`, add these imports:
 
@@ -2801,12 +2801,12 @@ Add the method to `issuesRepository`, after `parkForHumanReview`:
   },
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/modules/issues/__tests__/apply-agent-decision.test.ts`
 Expected: PASS — 3 tests
 
-- [ ] **Step 5: Write the failing test for the async-review queue**
+- [x] **Step 5: Write the failing test for the async-review queue**
 
 Band B executes *and* asks for a human to check afterwards. Without a way to
 find those issues, the middle band is decoration. Append to
@@ -2835,12 +2835,12 @@ describe("listAwaitingAsyncReview", () => {
 });
 ```
 
-- [ ] **Step 6: Run it to verify it fails**
+- [x] **Step 6: Run it to verify it fails**
 
 Run: `npx vitest run src/modules/issues/__tests__/apply-agent-decision.test.ts`
 Expected: FAIL — `issuesRepository.listAwaitingAsyncReview is not a function`
 
-- [ ] **Step 7: Implement it**
+- [x] **Step 7: Implement it**
 
 Add `inArray` is already imported; add `and` to the drizzle import at the top of
 `repository.ts`:
@@ -2876,7 +2876,7 @@ Add the method to `issuesRepository`, after `applyAgentDecision`:
   },
 ```
 
-- [ ] **Step 8: Write the failing HTTP test**
+- [x] **Step 8: Write the failing HTTP test**
 
 The audit trail is the deliverable, so it has to be visible over the wire.
 Create `apps/api/src/modules/issues/__tests__/agent-decision.api.test.ts`:
@@ -2937,7 +2937,7 @@ describe("GET /issues/:id — agent decisions", () => {
 });
 ```
 
-- [ ] **Step 9: Run both suites to verify they pass**
+- [x] **Step 9: Run both suites to verify they pass**
 
 Run: `npx vitest run src/modules/issues/__tests__/apply-agent-decision.test.ts src/modules/issues/__tests__/agent-decision.api.test.ts`
 Expected: PASS — 5 + 1 tests
@@ -2945,7 +2945,7 @@ Expected: PASS — 5 + 1 tests
 Note the wire contract is camelCase (`routingBand`, `scoreBreakdown`) because
 Drizzle rows are serialized as-is — see the comment in `get-issue-resolver.ts`.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add src/modules/issues/repository.ts \
