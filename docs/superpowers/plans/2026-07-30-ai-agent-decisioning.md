@@ -354,7 +354,7 @@ This is the load-bearing guardrail. A hallucinated or injected fact never reache
 - Consumes: `findCustomer`, `findTransaction`, `policyLine`, `policyLineCount` (Task 1); `AgentDecision`, `CitedFact` (Task 2); `IssueRow` from `@/modules/issues/types`.
 - Produces: `verifyCitedFacts(decision: AgentDecision, issue: IssueRow): VerificationResult`, `hasValidCitation(decision: AgentDecision): boolean`, type `VerificationResult = { ok: true } | { ok: false; mismatches: string[] }`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/api/src/modules/issues/ai/confidence/__tests__/verify.test.ts`:
 
@@ -483,12 +483,12 @@ describe("hasValidCitation", () => {
 
 Note: line 5 of `policies.md` is the `---` separator following the intro; if that changes, pick another blank/separator line and update the test comment.
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `npx vitest run src/modules/issues/ai/confidence/__tests__/verify.test.ts`
 Expected: FAIL — cannot resolve `@/modules/issues/ai/confidence/verify`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `apps/api/src/modules/issues/ai/confidence/verify.ts`:
 
@@ -589,12 +589,12 @@ export const hasValidCitation = (decision: AgentDecision): boolean =>
   });
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run src/modules/issues/ai/confidence/__tests__/verify.test.ts`
 Expected: PASS — 9 tests
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/modules/issues/ai/confidence/verify.ts \
