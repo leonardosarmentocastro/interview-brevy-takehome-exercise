@@ -2971,7 +2971,7 @@ them without special-casing either."
 - Consumes: `runAgent`, `AgentRunner`, `AGENT_MODEL` (Task 10); `verifyCitedFacts`, `hasValidCitation` (Task 3); `score` (Task 5); `route` (Task 6); `AgentDecisionParams` (Task 12).
 - Produces: `decide(issue, opts, runner?): Promise<DecideResult>`, type `DecideResult = { kind: "decided"; params: AgentDecisionParams } | { kind: "no_verdict"; reason: string }`.
 
-- [ ] **Step 1: Add `agent` to the DECIDE_MODE enum and make it the default**
+- [x] **Step 1: Add `agent` to the DECIDE_MODE enum and make it the default**
 
 In `apps/api/src/config/env.ts`, replace the `DECIDE_MODE` field:
 
@@ -2984,7 +2984,7 @@ In `apps/api/src/config/env.ts`, replace the `DECIDE_MODE` field:
     .default("agent"),
 ```
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Replace `apps/api/src/modules/issues/ai/__tests__/decide.test.ts` entirely:
 
@@ -3145,12 +3145,12 @@ describe("decide — agent mode", () => {
 });
 ```
 
-- [ ] **Step 3: Run the test to verify it fails**
+- [x] **Step 3: Run the test to verify it fails**
 
 Run: `npx vitest run src/modules/issues/ai/__tests__/decide.test.ts`
 Expected: FAIL — `decide` returns `undefined`, not a `DecideResult`
 
-- [ ] **Step 4: Write the implementation**
+- [x] **Step 4: Write the implementation**
 
 Replace `apps/api/src/modules/issues/ai/decide.ts` entirely:
 
@@ -3278,12 +3278,12 @@ export const decide = async (
 };
 ```
 
-- [ ] **Step 5: Run the test to verify it passes**
+- [x] **Step 5: Run the test to verify it passes**
 
 Run: `npx vitest run src/modules/issues/ai/__tests__/decide.test.ts`
 Expected: PASS — 11 tests
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/config/env.ts src/modules/issues/ai/decide.ts \

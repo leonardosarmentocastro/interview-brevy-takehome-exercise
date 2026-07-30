@@ -3,11 +3,12 @@ import { z } from "zod";
 const envSchema = z.object({
   DATABASE_URL: z.url(),
   PORT: z.coerce.number().default(3333),
-  // Demo/test scaffolding for the v1 decide() stub — see
-  // modules/issues/ai/decide.ts. Removed once a real decider lands.
+  // `agent` is production. The other modes are fault injection the queue tests
+  // drive retry, abort and dead-letter behaviour through — see
+  // modules/issues/ai/decide.ts and tasks/__tests__/process-issue.test.ts.
   DECIDE_MODE: z
-    .enum(["stub", "slow", "fail_retryable", "fail_terminal"])
-    .default("stub"),
+    .enum(["agent", "stub", "slow", "fail_retryable", "fail_terminal"])
+    .default("agent"),
   // Optional so the API and the test suite boot without it. Only the worker's
   // agent path needs it, and it fails loudly there if absent.
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
